@@ -1,0 +1,33 @@
+apiVersion: v2
+name: p10logs
+description: Lightweight, persistent, multi-cluster Kubernetes pod-log aggregation. Logs only, no metrics.
+type: application
+version: 1.0.0
+appVersion: "1.0.0"
+kubeVersion: ">=1.27.0-0"
+home: https://github.com/p10node/p10logs
+sources:
+  - https://github.com/p10node/p10logs
+keywords:
+  - logging
+  - kubernetes
+  - logs
+  - multi-cluster
+  - lightweight
+maintainers:
+  - name: p10node
+    url: https://github.com/p10node
+annotations:
+  artifacthub.io/category: logging
+  artifacthub.io/license: Apache-2.0
+  artifacthub.io/operator: "false"
+  artifacthub.io/images: |
+    - name: p10logs-agent
+      image: ghcr.io/p10node/p10logs-agent:1.0.0
+    - name: p10logs-hub
+      image: ghcr.io/p10node/p10logs-hub:1.0.0
+  artifacthub.io/links: |
+    - name: Documentation
+      url: https://p10node.github.io/p10logs/
+    - name: Changelog
+      url: https://github.com/p10node/p10logs/blob/main/CHANGELOG.md

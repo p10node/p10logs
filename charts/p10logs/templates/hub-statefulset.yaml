@@ -1,0 +1,183 @@
+{{- if .Values.hub.enabled }}
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: {{ include "p10logs.hub.fullname" . }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "p10logs.labels" . | nindent 4 }}
+    app.kubernetes.io/component: hub
+spec:
+  replicas: 1
+  serviceName: {{ include "p10logs.hub.fullname" . }}-headless
+  podManagementPolicy: Parallel
+  updateStrategy:
+    type: RollingUpdate
+  {{- if and .Values.hub.storage.persistence.enabled (not .Values.hub.storage.persistence.existingClaim) }}
+  persistentVolumeClaimRetentionPolicy:
+    whenDeleted: {{ ternary "Retain" "Delete" .Values.hub.storage.persistence.retainOnDelete }}
+    whenScaled: Retain
+  {{- end }}
+  selector:
+    matchLabels:
+      {{- include "p10logs.hub.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "p10logs.hub.selectorLabels" . | nindent 8 }}
+        {{- with .Values.hub.podLabels }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      annotations:
+        checksum/config: {{ include (print $.Template.BasePath "/hub-configmap.yaml") . | sha256sum }}
+        {{- with .Values.hub.podAnnotations }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+    spec:
+      serviceAccountName: {{ include "p10logs.hub.serviceAccountName" . }}
+      {{- with .Values.global.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.hub.priorityClassName }}
+      priorityClassName: {{ . }}
+      {{- end }}
+      {{- with .Values.hub.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.hub.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.hub.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      securityContext:
+        fsGroup: {{ .Values.hub.securityContext.fsGroup }}
+        fsGroupChangePolicy: OnRootMismatch
+      terminationGracePeriodSeconds: 60
+      containers:
+        - name: hub
+          image: {{ include "p10logs.image" (dict "global" .Values.global "image" .Values.hub.image "appVersion" .Chart.AppVersion) }}
+          imagePullPolicy: {{ .Values.hub.image.pullPolicy }}
+          args:
+            - --config=/etc/p10logs/hub.yaml
+          env:
+            - name: GOMEMLIMIT
+              valueFrom:
+                resourceFieldRef:
+                  resource: limits.memory
+          ports:
+            - name: http
+              containerPort: {{ .Values.hub.service.port }}
+              protocol: TCP
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+            initialDelaySeconds: 15
+            periodSeconds: 30
+          readinessProbe:
+            httpGet:
+              path: /readyz
+              port: http
+            periodSeconds: 10
+          startupProbe:
+            httpGet:
+              path: /readyz
+              port: http
+            failureThreshold: 60      # up to 10 min to replay WAL / rebuild index
+            periodSeconds: 10
+          securityContext:
+            {{- omit .Values.hub.securityContext "fsGroup" | toYaml | nindent 12 }}
+          resources:
+            {{- toYaml .Values.hub.resources | nindent 12 }}
+          volumeMounts:
+            - name: data
+              mountPath: /data
+            - name: config
+              mountPath: /etc/p10logs/hub.yaml
+              subPath: hub.yaml
+              readOnly: true
+            - name: ingest
+              mountPath: /etc/p10logs/ingest
+              readOnly: true
+            {{- if eq .Values.hub.auth.ui.mode "basic" }}
+            - name: ui
+              mountPath: /etc/p10logs/ui
+              readOnly: true
+            {{- end }}
+            {{- if and (eq .Values.hub.auth.ui.mode "oidc") .Values.hub.auth.ui.oidc.clientSecretRef }}
+            - name: oidc
+              mountPath: /etc/p10logs/oidc
+              readOnly: true
+            {{- end }}
+            {{- if and .Values.hub.storage.objectStore.enabled .Values.hub.storage.objectStore.accessKeySecret }}
+            - name: objectstore
+              mountPath: /etc/p10logs/objectstore
+              readOnly: true
+            {{- end }}
+            {{- range .Values.hub.federation.peers }}
+            - name: peer-{{ .name | lower | replace "." "-" | replace "_" "-" }}
+              mountPath: /etc/p10logs/peers/{{ .name }}
+              readOnly: true
+            {{- end }}
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: config
+          configMap:
+            name: {{ include "p10logs.hub.fullname" . }}
+        - name: ingest
+          secret:
+            secretName: {{ include "p10logs.ingestSecretName" . }}
+        {{- if eq .Values.hub.auth.ui.mode "basic" }}
+        - name: ui
+          secret:
+            secretName: {{ default (printf "%s-ui" (include "p10logs.fullname" .)) .Values.hub.auth.ui.basic.existingSecret }}
+        {{- end }}
+        {{- if and (eq .Values.hub.auth.ui.mode "oidc") .Values.hub.auth.ui.oidc.clientSecretRef }}
+        - name: oidc
+          secret:
+            secretName: {{ .Values.hub.auth.ui.oidc.clientSecretRef }}
+        {{- end }}
+        {{- if and .Values.hub.storage.objectStore.enabled .Values.hub.storage.objectStore.accessKeySecret }}
+        - name: objectstore
+          secret:
+            secretName: {{ .Values.hub.storage.objectStore.accessKeySecret }}
+        {{- end }}
+        {{- range .Values.hub.federation.peers }}
+        - name: peer-{{ .name | lower | replace "." "-" | replace "_" "-" }}
+          secret:
+            secretName: {{ .tokenSecret }}
+        {{- end }}
+        - name: tmp
+          emptyDir:
+            sizeLimit: 256Mi
+        {{- if not .Values.hub.storage.persistence.enabled }}
+        - name: data
+          emptyDir: {}
+        {{- else if .Values.hub.storage.persistence.existingClaim }}
+        - name: data
+          persistentVolumeClaim:
+            claimName: {{ .Values.hub.storage.persistence.existingClaim }}
+        {{- end }}
+  {{- if and .Values.hub.storage.persistence.enabled (not .Values.hub.storage.persistence.existingClaim) }}
+  volumeClaimTemplates:
+    - metadata:
+        name: data
+        labels:
+          {{- include "p10logs.hub.selectorLabels" . | nindent 10 }}
+      spec:
+        accessModes:
+          {{- toYaml .Values.hub.storage.persistence.accessModes | nindent 10 }}
+        {{- with .Values.hub.storage.persistence.storageClass }}
+        storageClassName: {{ . | quote }}
+        {{- end }}
+        resources:
+          requests:
+            storage: {{ .Values.hub.storage.persistence.size }}
+  {{- end }}
+{{- end }}

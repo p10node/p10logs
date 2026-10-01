@@ -1,0 +1,30 @@
+{{- /* Only needed when enrich.enabled: a single pod informer per node for labels/annotations. */ -}}
+{{- if and .Values.agent.enabled .Values.agent.enrich.enabled }}
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: {{ include "p10logs.agent.fullname" . }}
+  labels:
+    {{- include "p10logs.labels" . | nindent 4 }}
+    app.kubernetes.io/component: agent
+rules:
+  - apiGroups: [""]
+    resources: ["pods"]
+    verbs: ["get", "list", "watch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: {{ include "p10logs.agent.fullname" . }}
+  labels:
+    {{- include "p10logs.labels" . | nindent 4 }}
+    app.kubernetes.io/component: agent
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: {{ include "p10logs.agent.fullname" . }}
+subjects:
+  - kind: ServiceAccount
+    name: {{ include "p10logs.agent.serviceAccountName" . }}
+    namespace: {{ .Release.Namespace }}
+{{- end }}

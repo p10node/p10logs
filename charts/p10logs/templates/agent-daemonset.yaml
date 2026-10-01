@@ -1,0 +1,157 @@
+{{- if .Values.agent.enabled }}
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: {{ include "p10logs.agent.fullname" . }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "p10logs.labels" . | nindent 4 }}
+    app.kubernetes.io/component: agent
+spec:
+  selector:
+    matchLabels:
+      {{- include "p10logs.agent.selectorLabels" . | nindent 6 }}
+  updateStrategy:
+    {{- toYaml .Values.agent.updateStrategy | nindent 4 }}
+  template:
+    metadata:
+      labels:
+        {{- include "p10logs.agent.selectorLabels" . | nindent 8 }}
+        {{- with .Values.agent.podLabels }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      annotations:
+        checksum/config: {{ include (print $.Template.BasePath "/agent-configmap.yaml") . | sha256sum }}
+        {{- with .Values.agent.podAnnotations }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+    spec:
+      serviceAccountName: {{ include "p10logs.agent.serviceAccountName" . }}
+      {{- with .Values.global.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.agent.priorityClassName }}
+      priorityClassName: {{ . }}
+      {{- end }}
+      {{- with .Values.agent.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.agent.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.agent.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      terminationGracePeriodSeconds: 30
+      containers:
+        - name: agent
+          image: {{ include "p10logs.image" (dict "global" .Values.global "image" .Values.agent.image "appVersion" .Chart.AppVersion) }}
+          imagePullPolicy: {{ .Values.agent.image.pullPolicy }}
+          args:
+            - --config=/etc/p10logs/agent.yaml
+          env:
+            - name: NODE_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: spec.nodeName
+            - name: POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: POD_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            - name: GOMEMLIMIT
+              valueFrom:
+                resourceFieldRef:
+                  resource: limits.memory
+          ports:
+            - name: health
+              containerPort: 9411
+              protocol: TCP
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: health
+            initialDelaySeconds: 10
+            periodSeconds: 30
+          readinessProbe:
+            httpGet:
+              path: /readyz
+              port: health
+            periodSeconds: 10
+          securityContext:
+            {{- toYaml .Values.agent.securityContext | nindent 12 }}
+          resources:
+            {{- toYaml .Values.agent.resources | nindent 12 }}
+          volumeMounts:
+            - name: config
+              mountPath: /etc/p10logs/agent.yaml
+              subPath: agent.yaml
+              readOnly: true
+            - name: secret
+              mountPath: /etc/p10logs/secret
+              readOnly: true
+            {{- if .Values.agent.hub.tls.caSecret }}
+            - name: ca
+              mountPath: /etc/p10logs/ca
+              readOnly: true
+            {{- end }}
+            - name: varlogpods
+              mountPath: {{ .Values.agent.hostPaths.pods }}
+              readOnly: true
+            {{- if .Values.agent.hostPaths.containers }}
+            - name: varlogcontainers
+              mountPath: {{ .Values.agent.hostPaths.containers }}
+              readOnly: true
+            {{- end }}
+            {{- if .Values.agent.hostPaths.docker }}
+            - name: dockercontainers
+              mountPath: {{ .Values.agent.hostPaths.docker }}
+              readOnly: true
+            {{- end }}
+            - name: state
+              mountPath: {{ .Values.agent.hostPaths.state }}
+            - name: tmp
+              mountPath: /tmp
+      volumes:
+        - name: config
+          configMap:
+            name: {{ include "p10logs.agent.fullname" . }}
+        - name: secret
+          secret:
+            secretName: {{ include "p10logs.ingestSecretName" . }}
+        {{- if .Values.agent.hub.tls.caSecret }}
+        - name: ca
+          secret:
+            secretName: {{ .Values.agent.hub.tls.caSecret }}
+        {{- end }}
+        - name: varlogpods
+          hostPath:
+            path: {{ .Values.agent.hostPaths.pods }}
+            type: DirectoryOrCreate
+        {{- if .Values.agent.hostPaths.containers }}
+        - name: varlogcontainers
+          hostPath:
+            path: {{ .Values.agent.hostPaths.containers }}
+            type: DirectoryOrCreate
+        {{- end }}
+        {{- if .Values.agent.hostPaths.docker }}
+        - name: dockercontainers
+          hostPath:
+            path: {{ .Values.agent.hostPaths.docker }}
+            type: DirectoryOrCreate
+        {{- end }}
+        - name: state
+          hostPath:
+            path: {{ .Values.agent.hostPaths.state }}
+            type: DirectoryOrCreate
+        - name: tmp
+          emptyDir:
+            sizeLimit: 64Mi
+{{- end }}

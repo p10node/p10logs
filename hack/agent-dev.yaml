@@ -1,0 +1,9 @@
+cluster: dev
+paths:
+  pods: ./hack/fakepods
+  state: ./data-agent
+backfill:
+  compressed: true
+batch:
+  flushInterval: 500ms
+heartbeatInterval: 5s

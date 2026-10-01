@@ -1,0 +1,54 @@
+{{- if .Values.agent.enabled }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "p10logs.agent.fullname" . }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "p10logs.labels" . | nindent 4 }}
+    app.kubernetes.io/component: agent
+data:
+  agent.yaml: |
+    cluster: {{ .Values.global.clusterName | quote }}
+    logLevel: {{ .Values.agent.logLevel }}
+    hub:
+      url: {{ include "p10logs.agent.hubUrl" . | quote }}
+      tokenFile: /etc/p10logs/secret/token
+      tls:
+        insecureSkipVerify: {{ .Values.agent.hub.tls.insecureSkipVerify }}
+        {{- if .Values.agent.hub.tls.caSecret }}
+        caFile: /etc/p10logs/ca/ca.crt
+        {{- end }}
+    paths:
+      pods: {{ .Values.agent.hostPaths.pods | quote }}
+      {{- if .Values.agent.hostPaths.docker }}
+      docker: {{ .Values.agent.hostPaths.docker | quote }}
+      {{- end }}
+      state: {{ .Values.agent.hostPaths.state | quote }}
+    collect:
+      {{- with .Values.agent.collect }}
+      includeNamespaces: {{ toJson .includeNamespaces }}
+      excludeNamespaces: {{ toJson .excludeNamespaces }}
+      excludeContainers: {{ toJson .excludeContainers }}
+      self: {{ .self }}
+      {{- end }}
+    enrich:
+      {{- with .Values.agent.enrich }}
+      enabled: {{ .enabled }}
+      labels: {{ toJson .labels }}
+      annotations: {{ toJson .annotations }}
+      {{- end }}
+    backfill:
+      {{- toYaml .Values.agent.backfill | nindent 6 }}
+    heartbeatInterval: {{ .Values.agent.heartbeatInterval }}
+    ship:
+      {{- toYaml .Values.agent.ship | nindent 6 }}
+    batch:
+      {{- toYaml .Values.agent.batch | nindent 6 }}
+    buffer:
+      {{- toYaml .Values.agent.buffer | nindent 6 }}
+    rateLimit:
+      {{- toYaml .Values.agent.rateLimit | nindent 6 }}
+    multiline:
+      {{- toYaml .Values.agent.multiline | nindent 6 }}
+{{- end }}

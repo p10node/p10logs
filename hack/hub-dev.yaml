@@ -1,0 +1,11 @@
+listen: ":8080"
+dataDir: ./data
+auth:
+  ui:
+    mode: none
+storage:
+  retention:
+    maxAge: 168h
+  segment:
+    targetBytes: 4194304
+    maxOpenAge: 5m

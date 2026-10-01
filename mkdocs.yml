@@ -1,0 +1,20 @@
+site_name: p10logs
+site_url: https://p10node.github.io/p10logs/
+repo_url: https://github.com/p10node/p10logs
+docs_dir: docs
+nav:
+  - Overview: index.md
+  - Architecture: ARCHITECTURE.md
+  - Multi-cluster: MULTI_CLUSTER.md
+  - On-disk formats: FORMATS.md
+  - Changelog: CHANGELOG.md
+theme:
+  name: material
+  palette:
+    - scheme: slate
+      primary: teal
+markdown_extensions:
+  - tables
+  - fenced_code
+  - toc:
+      permalink: true

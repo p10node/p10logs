@@ -1,0 +1,71 @@
+{{- if .Values.hub.enabled }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "p10logs.hub.fullname" . }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "p10logs.labels" . | nindent 4 }}
+    app.kubernetes.io/component: hub
+data:
+  hub.yaml: |
+    logLevel: {{ .Values.hub.logLevel }}
+    listen: ":{{ .Values.hub.service.port }}"
+    dataDir: /data
+    auth:
+      ingestTokenFile: /etc/p10logs/ingest/ingest-token
+      apiTokens: {{ toJson .Values.hub.auth.apiTokens }}
+      clusterTokens: {{ toJson .Values.hub.auth.clusterTokens }}
+      roles: {{ toJson .Values.hub.auth.roles }}
+      publicUrl: {{ .Values.hub.auth.publicUrl | quote }}
+      ui:
+        mode: {{ .Values.hub.auth.ui.mode }}
+        {{- if eq .Values.hub.auth.ui.mode "basic" }}
+        basic:
+          usernameFile: /etc/p10logs/ui/username
+          passwordFile: /etc/p10logs/ui/password
+        {{- end }}
+        {{- if eq .Values.hub.auth.ui.mode "oidc" }}
+        oidc:
+          issuerUrl: {{ .Values.hub.auth.ui.oidc.issuerUrl | quote }}
+          clientId: {{ .Values.hub.auth.ui.oidc.clientId | quote }}
+          clientSecretFile: /etc/p10logs/oidc/client-secret
+          allowedEmails: {{ toJson .Values.hub.auth.ui.oidc.allowedEmails }}
+          allowedDomains: {{ toJson .Values.hub.auth.ui.oidc.allowedDomains }}
+        {{- end }}
+    storage:
+      retention:
+        {{- toYaml .Values.hub.storage.retention | nindent 8 }}
+      segment:
+        {{- toYaml .Values.hub.storage.segment | nindent 8 }}
+      wal:
+        {{- toYaml .Values.hub.storage.wal | nindent 8 }}
+      memtable:
+        {{- toYaml .Values.hub.storage.memtable | nindent 8 }}
+      objectStore:
+        enabled: {{ .Values.hub.storage.objectStore.enabled }}
+        {{- if .Values.hub.storage.objectStore.enabled }}
+        endpoint: {{ .Values.hub.storage.objectStore.endpoint | quote }}
+        bucket: {{ .Values.hub.storage.objectStore.bucket | quote }}
+        region: {{ .Values.hub.storage.objectStore.region | quote }}
+        prefix: {{ .Values.hub.storage.objectStore.prefix | quote }}
+        pathStyle: {{ .Values.hub.storage.objectStore.pathStyle }}
+        uploadAfter: {{ .Values.hub.storage.objectStore.uploadAfter }}
+        cacheBytes: {{ .Values.hub.storage.objectStore.cacheBytes | int64 }}
+        credentialsDir: /etc/p10logs/objectstore
+        {{- end }}
+    limits:
+      {{- toYaml .Values.hub.limits | nindent 6 }}
+    query:
+      {{- toYaml .Values.hub.query | nindent 6 }}
+    federation:
+      enabled: {{ .Values.hub.federation.enabled }}
+      peers:{{ if not .Values.hub.federation.peers }} []{{ end }}
+        {{- range .Values.hub.federation.peers }}
+        - name: {{ .name | quote }}
+          url: {{ .url | quote }}
+          tokenFile: /etc/p10logs/peers/{{ .name }}/token
+        {{- end }}
+    metrics:
+      enabled: {{ .Values.hub.metrics.enabled }}
+{{- end }}

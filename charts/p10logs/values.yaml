@@ -1,0 +1,298 @@
+# ---------------------------------------------------------------------------
+# p10logs Helm values
+#
+# Topologies (see README "Multi-cluster"):
+#   standalone : agent.enabled=true  hub.enabled=true   (single cluster, default)
+#   hub        : agent.enabled=true  hub.enabled=true   + hub.ingress (central cluster)
+#   spoke      : agent.enabled=true  hub.enabled=false  + agent.hub.url=https://<central>
+# ---------------------------------------------------------------------------
+
+global:
+  # Logical name of THIS cluster. Stamped on every log line as label `cluster`.
+  # MUST be unique across all clusters that push to the same hub.
+  clusterName: "default"
+  imageRegistry: ghcr.io
+  imagePullSecrets: []
+
+# ---------------------------------------------------------------------------
+# Agent (DaemonSet) - tails /var/log/pods on every node, ships to hub.
+# ---------------------------------------------------------------------------
+agent:
+  enabled: true
+
+  image:
+    repository: p10node/p10logs-agent
+    tag: ""            # defaults to .Chart.AppVersion
+    pullPolicy: IfNotPresent
+
+  hub:
+    # Where to push. Empty => in-cluster hub service of this release.
+    url: ""
+    # Bearer token. Either set `token` here or reference an existing secret.
+    # GitOps (ArgoCD/Flux render with `helm template`, where lookup() is empty): ALWAYS use
+    # existingSecret, otherwise the auto-generated token changes on every sync.
+    token: ""
+    existingSecret: ""          # secret with key `token`
+    tls:
+      insecureSkipVerify: false
+      caSecret: ""              # secret with key `ca.crt` (private CA for hub)
+
+  # Which pods to collect. Path-based, evaluated on the node, zero apiserver calls.
+  collect:
+    includeNamespaces: []       # [] => all
+    excludeNamespaces: []       # e.g. ["kube-system"]
+    excludeContainers: []       # e.g. ["istio-proxy", "linkerd-proxy"]
+    # Collect the agent's own logs? Usually no (feedback loop).
+    self: false
+
+  # Enrich lines with pod labels/annotations via a *single* shared pod informer.
+  # Off by default: costs one watch on the apiserver per node.
+  enrich:
+    enabled: false
+    labels: []                  # e.g. ["app", "app.kubernetes.io/name"]
+    annotations: []
+
+  # On first discovery of a container, also read kubelet's gzipped rotated files.
+  backfill:
+    compressed: true
+  # Empty push with node stats; feeds the hub "Agents" page.
+  heartbeatInterval: 10s
+
+  # Shipping behaviour
+  ship:
+    maxInFlight: 4              # batches awaiting ack before the reader pauses
+  batch:
+    maxBytes: 1048576           # 1 MiB uncompressed per push
+    maxLines: 5000
+    flushInterval: 1s
+  buffer:
+    # Disk buffer used when hub is unreachable. Lives on hostPath below.
+    maxBytes: 268435456         # 256 MiB per node, then drop oldest
+  rateLimit:
+    linesPerSecondPerContainer: 0   # 0 = unlimited
+
+  # Multi-line reassembly (stack traces). Applied per container.
+  multiline:
+    enabled: false
+    # Lines NOT matching `startPattern` are appended to the previous line.
+    startPattern: '^(\d{4}-\d{2}-\d{2}|\{|\[|[A-Z]{3,5} )'
+    maxLines: 200
+    timeout: 2s
+
+  # Node paths
+  hostPaths:
+    pods: /var/log/pods              # CRI (containerd / CRI-O)
+    containers: /var/log/containers  # symlinks, kept for tools that expect them
+    docker: ""                       # /var/lib/docker/containers (legacy dockershim only)
+    state: /var/lib/p10logs          # read offsets + disk buffer (survives agent restart)
+
+  resources:
+    requests:
+      cpu: 20m
+      memory: 48Mi
+    limits:
+      memory: 192Mi
+
+  priorityClassName: system-node-critical
+  tolerations:
+    - operator: Exists           # run on every node incl. control plane / tainted
+  nodeSelector: {}
+  affinity: {}
+  updateStrategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 10%
+  podAnnotations: {}
+  podLabels: {}
+  # NOTE: hostPath volumes violate the Pod Security Standard "baseline". Label the
+  # namespace `pod-security.kubernetes.io/enforce=privileged` (or add an exemption).
+  securityContext:
+    runAsUser: 0                 # needed to read /var/log/pods (root:root 0644 typically ok, but dirs vary)
+    readOnlyRootFilesystem: true
+    allowPrivilegeEscalation: false
+    capabilities:
+      drop: ["ALL"]
+  serviceAccount:
+    create: true
+    name: ""
+  logLevel: info
+
+# ---------------------------------------------------------------------------
+# Hub (StatefulSet, 1 replica) - receives, stores, indexes, serves UI/API.
+# ---------------------------------------------------------------------------
+hub:
+  enabled: true
+
+  image:
+    repository: p10node/p10logs-hub
+    tag: ""
+    pullPolicy: IfNotPresent
+
+  # Ingest auth. Agents must present this token. Empty => auto-generated on install.
+  auth:
+    ingestToken: ""
+    existingSecret: ""          # key `ingest-token`
+    # Per-cluster ingest tokens: each may only push as the listed clusters (globs).
+    # Prefer these over the shared ingestToken once you have more than one cluster.
+    clusterTokens: []
+    #  - token: "<secret>"
+    #    clusters: ["prod-eu-1"]
+    # Extra bearer tokens accepted on the read API (scripts, curl) regardless of ui.mode.
+    apiTokens: []
+    # Viewer roles: scope what a user (basic username / OIDC email / domain) or a
+    # role-bound API token may read. No roles = everyone sees everything. With roles,
+    # identities that match none are denied.
+    roles: []
+    #  - name: payments
+    #    users: ["alice@example.com"]
+    #    domains: []
+    #    apiTokens: []
+    #    clusters: ["prod-*"]
+    #    namespaces: ["payments", "billing-*"]
+    # External URL of the hub (scheme + host), used for the OIDC redirect when the hub
+    # sits behind a proxy that does not set X-Forwarded-Proto. Empty = derive from request.
+    publicUrl: ""
+    # UI/API auth. "none" | "basic" | "oidc"
+    ui:
+      mode: basic
+      basic:
+        username: admin
+        password: ""            # empty => auto-generated, printed in NOTES
+        existingSecret: ""      # keys `username`, `password`
+      # Any OIDC provider works (Keycloak, Dex, Authentik, Zitadel, Kanidm, Google, Entra).
+      # Register redirect URI: https://<hub-host>/auth/callback
+      oidc:
+        issuerUrl: ""             # e.g. https://keycloak.example.com/realms/main
+        clientId: ""
+        clientSecretRef: ""       # secret with key `client-secret`
+        allowedEmails: []         # empty + empty domains = anyone the IdP authenticates
+        allowedDomains: []        # e.g. ["example.com"]
+
+  storage:
+    # Persistent volume for /data (segments + index + WAL)
+    persistence:
+      enabled: true
+      size: 50Gi
+      storageClass: ""
+      accessModes: ["ReadWriteOnce"]
+      existingClaim: ""
+      # Keep the PVC when the release is uninstalled / scaled down (K8s >= 1.27).
+      retainOnDelete: true
+    retention:
+      maxAge: 168h              # 7 days, per stream
+      maxDiskBytes: 0           # 0 => 90% of PVC size, evict oldest segments first
+      # Per-namespace overrides (namespace may be "<cluster>/<namespace>")
+      overrides: []
+      #  - match: "prod/payments"
+      #    maxAge: 720h
+      #  - match: "*/kube-system"
+      #    maxAge: 24h
+    segment:
+      targetBytes: 4194304      # 4 MiB on disk per chunk before seal
+      maxOpenAge: 5m            # seal even if small
+      compression: zstd         # zstd | none
+    # Write path: push → WAL fsync → ack → memtable → frame. Bigger frames compress
+    # better; smaller flushAge bounds how long lines sit only in WAL + memory.
+    wal:
+      segmentBytes: 67108864    # 64 MiB: flush all memtables + truncate WAL
+    memtable:
+      flushBytes: 262144        # 256 KiB per stream → one frame
+      flushAge: 30s             # flush a stream after this even if small
+      maxBytes: 134217728       # 128 MiB total; largest streams flush first
+    # Optional cold tier: sealed segments copied to object storage, evicted locally.
+    objectStore:
+      enabled: false
+      endpoint: ""              # https://s3.amazonaws.com, https://<account>.r2.cloudflarestorage.com, http://minio:9000
+      bucket: ""
+      region: ""
+      prefix: ""                # key prefix inside the bucket
+      accessKeySecret: ""       # keys `accessKey`, `secretKey`
+      pathStyle: true
+      uploadAfter: 1h           # copy sealed chunks this long after their newest line
+      cacheBytes: 1073741824    # local cache for fetched cold chunks (1 GiB)
+
+  limits:
+    maxBatchBytes: 8388608      # 8 MiB uncompressed per push, else 413
+    maxLineBytes: 262144        # 256 KiB, longer lines truncated with a marker
+    perCluster:
+      bytesPerSecond: 0         # 0 = unlimited; else 429 + Retry-After for that cluster
+
+  query:
+    maxConcurrent: 8
+    maxScanBytes: 2147483648    # 2 GiB per query, hard stop
+    timeout: 60s
+    tail:
+      maxClients: 200
+      maxLinesPerSecondPerClient: 2000
+      bufferLines: 5000
+
+  # Federation: this hub can also proxy queries to other hubs (multi-hub topology).
+  federation:
+    enabled: false
+    peers: []
+    #  - name: eu-1
+    #    url: https://p10logs.eu-1.example.com
+    #    tokenSecret: p10logs-peer-eu-1   # key `token`
+
+  service:
+    type: ClusterIP
+    port: 8080
+    annotations: {}
+
+  ingress:
+    enabled: false
+    className: ""
+    annotations: {}
+    hosts:
+      - host: p10logs.example.com
+        paths:
+          - path: /
+            pathType: Prefix
+    tls: []
+    #  - secretName: p10logs-tls
+    #    hosts: [p10logs.example.com]
+
+  # Gateway API alternative to Ingress
+  httpRoute:
+    enabled: false
+    parentRefs: []
+    hostnames: []
+
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      memory: 1Gi
+
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+  podAnnotations: {}
+  podLabels: {}
+  priorityClassName: ""
+  securityContext:
+    runAsUser: 65532
+    runAsGroup: 65532
+    fsGroup: 65532
+    runAsNonRoot: true
+    readOnlyRootFilesystem: true
+    allowPrivilegeEscalation: false
+    capabilities:
+      drop: ["ALL"]
+  serviceAccount:
+    create: true
+    name: ""
+  logLevel: info
+
+  # Prometheus /metrics endpoint. OFF by default - p10logs is logs-only by design.
+  metrics:
+    enabled: false
+    serviceMonitor:
+      enabled: false
+
+# ---------------------------------------------------------------------------
+# Misc
+# ---------------------------------------------------------------------------
+nameOverride: ""
+fullnameOverride: ""

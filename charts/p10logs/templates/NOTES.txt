@@ -1,0 +1,41 @@
+p10logs {{ .Chart.AppVersion }} installed in namespace {{ .Release.Namespace }}.
+
+NOTE: the agent mounts hostPath volumes. If Pod Security Admission is enforced, label
+the namespace:  kubectl label ns {{ .Release.Namespace }} pod-security.kubernetes.io/enforce=privileged --overwrite
+
+Cluster name : {{ .Values.global.clusterName }}
+Agent        : {{ ternary "enabled (DaemonSet)" "disabled" .Values.agent.enabled }}
+Hub          : {{ ternary "enabled (StatefulSet + PVC)" "disabled" .Values.hub.enabled }}
+{{- if .Values.agent.enabled }}
+Agent pushes to: {{ include "p10logs.agent.hubUrl" . }}
+{{- end }}
+
+{{- if .Values.hub.enabled }}
+
+UI / API:
+{{- if .Values.hub.ingress.enabled }}
+{{- range .Values.hub.ingress.hosts }}
+  https://{{ .host }}
+{{- end }}
+{{- else }}
+  kubectl -n {{ .Release.Namespace }} port-forward svc/{{ include "p10logs.hub.fullname" . }} {{ .Values.hub.service.port }}:{{ .Values.hub.service.port }}
+  open http://localhost:{{ .Values.hub.service.port }}
+{{- end }}
+
+{{- if eq .Values.hub.auth.ui.mode "basic" }}
+
+UI login (basic):
+  username: {{ .Values.hub.auth.ui.basic.username }}
+  password: kubectl -n {{ .Release.Namespace }} get secret {{ default (printf "%s-ui" (include "p10logs.fullname" .)) .Values.hub.auth.ui.basic.existingSecret }} -o jsonpath='{.data.password}' | base64 -d
+{{- end }}
+
+Ingest token (give this to spoke clusters):
+  kubectl -n {{ .Release.Namespace }} get secret {{ include "p10logs.ingestSecretName" . }} -o jsonpath='{.data.token}' | base64 -d
+
+Add a spoke cluster:
+  helm install p10logs oci://ghcr.io/p10node/charts/p10logs \
+    --set global.clusterName=<spoke-name> \
+    --set hub.enabled=false \
+    --set agent.hub.url=https://<this-hub-public-url> \
+    --set agent.hub.token=<ingest-token>
+{{- end }}

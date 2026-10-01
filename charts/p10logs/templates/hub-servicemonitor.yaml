@@ -1,0 +1,18 @@
+{{- if and .Values.hub.enabled .Values.hub.metrics.enabled .Values.hub.metrics.serviceMonitor.enabled }}
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: {{ include "p10logs.hub.fullname" . }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "p10logs.labels" . | nindent 4 }}
+    app.kubernetes.io/component: hub
+spec:
+  selector:
+    matchLabels:
+      {{- include "p10logs.hub.selectorLabels" . | nindent 6 }}
+  endpoints:
+    - port: http
+      path: /metrics
+      interval: 60s
+{{- end }}

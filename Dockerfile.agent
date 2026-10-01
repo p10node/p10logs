@@ -1,0 +1,13 @@
+FROM --platform=$BUILDPLATFORM golang:1.26-alpine AS build
+ARG TARGETOS TARGETARCH VERSION=dev
+WORKDIR /src
+COPY go.mod go.sum ./
+RUN go mod download
+COPY . .
+RUN CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH go build -trimpath -ldflags="-s -w -X github.com/p10node/p10logs/internal/agent.Version=$VERSION" -o /out/p10logs-agent ./cmd/p10logs-agent
+
+FROM gcr.io/distroless/static-debian12:nonroot
+# The agent must read root-owned 0640 files under /var/log/pods, so the chart runs it as UID 0.
+USER 0
+COPY --from=build /out/p10logs-agent /p10logs-agent
+ENTRYPOINT ["/p10logs-agent"]

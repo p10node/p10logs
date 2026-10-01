@@ -1,0 +1,40 @@
+{{- if .Values.hub.enabled }}
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "p10logs.hub.fullname" . }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "p10logs.labels" . | nindent 4 }}
+    app.kubernetes.io/component: hub
+  {{- with .Values.hub.service.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  type: {{ .Values.hub.service.type }}
+  ports:
+    - name: http
+      port: {{ .Values.hub.service.port }}
+      targetPort: http
+      protocol: TCP
+  selector:
+    {{- include "p10logs.hub.selectorLabels" . | nindent 4 }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "p10logs.hub.fullname" . }}-headless
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "p10logs.labels" . | nindent 4 }}
+    app.kubernetes.io/component: hub
+spec:
+  clusterIP: None
+  ports:
+    - name: http
+      port: {{ .Values.hub.service.port }}
+      targetPort: http
+  selector:
+    {{- include "p10logs.hub.selectorLabels" . | nindent 4 }}
+{{- end }}
