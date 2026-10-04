@@ -21,6 +21,17 @@ no object store required.
 
 ---
 
+## Screenshots
+
+![Live tail of two api pods, interleaved by timestamp](docs/img/tail.gif)
+
+|                                                                                                                   |                                                                                               |
+|-------------------------------------------------------------------------------------------------------------------|-----------------------------------------------------------------------------------------------|
+| ![Logs: workload tree, two api pods and a crash-looping worker interleaved, JSON highlighted](docs/img/logs.png)  | ![Search: IllegalStateException across joined stack traces, Wrap mode](docs/img/search.png)   |
+| Tree grouped by workload; three streams interleaved with a colour per pod, restart boundaries, JSON highlighting. | Filter `IllegalStateException` over joined stack traces, Wrap mode, search terms highlighted. |
+
+![Agents page: hub stats and one row per node with lag, spool and dropped counts](docs/img/agents.png)
+
 ## Why another log tool
 
 Teams that just want "show me the logs of that pod, including from before it
@@ -472,6 +483,8 @@ make e2e-multi       # 3-node hub cluster + spoke cluster + demo apps on kind; p
 make demo            # apply hack/demo/ (JSON, crash loops, stack traces, 20 KiB lines, CronJob…) to the current context
 make images-tar      # dist/p10logs-images-<ver>.tar for nodes without registry access
 make run-hub         # hub on :8080, UI auth none, ingest token "dev", data in ./data
+make package         # dist/p10logs-<ver>.tgz; before the first GitHub release install from this file
+                     # (helm install p10logs dist/p10logs-1.1.0.tgz) with images from `make images-tar`
 make run-agent       # agent tailing ./hack/fakepods into that hub
 make lint template   # helm
 make images          # multi-arch images via buildx

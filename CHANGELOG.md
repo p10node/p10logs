@@ -106,6 +106,8 @@ Real-cluster readiness. No format or API changes.
   timing-dependent; the test hub for that step is killed on exit; test hubs bind
   `127.0.0.1` explicitly (on some macOS hosts IPv4 connections to a dual-stack `:port`
   listener hang in SYN_SENT once Docker networks exist).
+- README: screenshots and a live-tail GIF (`docs/img/`), generated from a seeded local
+  hub; the docs site rewrites the image links.
 - License: copyright notice filled in (2026 p10node), `NOTICE` file, OCI license/source
   labels on both images.
 - CI: `kind-multi` job runs the multi-cluster e2e.
