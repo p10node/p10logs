@@ -2,6 +2,7 @@ package tail
 
 import (
 	"bufio"
+	"bytes"
 	"compress/gzip"
 	"context"
 	"errors"
@@ -41,15 +42,18 @@ func Inode(fi os.FileInfo) uint64 {
 	return 0
 }
 
-// Tailer follows one file identity (path + inode) to EOF, then keeps polling.
+// Tailer follows one file identity (path + inode + first line) to EOF, then keeps polling.
 type Tailer struct {
-	Path     string
-	Inode    uint64
-	Meta     cri.Meta
-	Start    int64
-	Sink     Sink
-	Poll     time.Duration
-	MaxMerge int
+	Path  string
+	Inode uint64
+	Meta  cri.Meta
+	// Start is the offset to resume from when Positions is nil; with Positions set, the
+	// checkpoint for the file's FileKey (or, once, its legacy Key) decides.
+	Start     int64
+	Positions *Positions
+	Sink      Sink
+	Poll      time.Duration
+	MaxMerge  int
 	// RotateWait: after rotation keep reading the old inode this long (runtime may
 	// still flush into it before it reopens the new path). Default 5s.
 	RotateWait time.Duration
@@ -64,10 +68,34 @@ type Tailer struct {
 // Offset is the current read position (for lag reporting).
 func (t *Tailer) Offset() int64 { return t.off.Load() }
 
-// NewTailer prepares a tailer; call Run in a goroutine.
+// NewTailer prepares a tailer; call Run in a goroutine. The file key is fixed once the
+// first line is on disk (see FileKey).
 func NewTailer(path string, inode uint64, meta cri.Meta, start int64, sink Sink) *Tailer {
 	return &Tailer{Path: path, Inode: inode, Meta: meta, Start: start, Sink: sink, Poll: 250 * time.Millisecond,
-		rotated: make(chan struct{}), done: make(chan struct{}), key: Key(path, inode)}
+		rotated: make(chan struct{}), done: make(chan struct{})}
+}
+
+// Key returns the file key ("" until the first line has been seen).
+func (t *Tailer) Key() string { return t.key }
+
+// fingerprintMax bounds how much of the file the identity hash covers. CRI records can be
+// 16 KiB (containerd) plus prefix before the first newline, so 4 KiB is not enough; a
+// file that has no newline within 64 KiB is fingerprinted by those 64 KiB.
+const fingerprintMax = 64 << 10
+
+// firstLine returns the bytes that identify the file: its first line, or the first
+// fingerprintMax bytes when the first line is longer than that. ok is false while the
+// file has no complete line yet (a log reopened by the runtime is empty for a moment).
+func firstLine(f *os.File) (line []byte, ok bool) {
+	buf := make([]byte, fingerprintMax)
+	n, _ := f.ReadAt(buf, 0)
+	if i := bytes.IndexByte(buf[:n], '\n'); i >= 0 {
+		return buf[:i], true
+	}
+	if n == fingerprintMax {
+		return buf, true
+	}
+	return nil, false
 }
 
 // Rotated tells the tailer its file was rotated away: finish the old inode and exit.
@@ -94,7 +122,38 @@ func (t *Tailer) Run(ctx context.Context) {
 	if err != nil || (t.Inode != 0 && Inode(fi) != t.Inode) {
 		return
 	}
+	// Identity needs the first line; a freshly reopened log may be empty for a moment.
+	var head []byte
+	for {
+		var ok bool
+		if head, ok = firstLine(f); ok {
+			break
+		}
+		select {
+		case <-ctx.Done():
+			return
+		case <-time.After(t.Poll):
+		}
+		if st, err := os.Stat(t.Path); err != nil || Inode(st) != Inode(fi) {
+			if fi2, err := f.Stat(); err != nil || fi2.Size() == 0 {
+				return // replaced or deleted while still empty: nothing to ship
+			}
+		}
+	}
+	t.key = FileKey(t.Path, Inode(fi), head)
 	off := t.Start
+	if t.Positions != nil {
+		if p, ok := t.Positions.Get(t.key); ok {
+			off = p.Offset
+		} else if p, ok := t.Positions.Get(Key(t.Path, Inode(fi))); ok {
+			off = p.Offset // checkpoint written by an agent before FileKey existed: adopt it once
+		} else {
+			off = 0
+		}
+	}
+	if fi, err = f.Stat(); err != nil {
+		return
+	}
 	if fi.Size() < off { // truncated since checkpoint
 		off = 0
 	}
@@ -104,7 +163,7 @@ func (t *Tailer) Run(ctx context.Context) {
 	r := bufio.NewReaderSize(f, 64<<10)
 	merger := cri.Merger{MaxSize: t.MaxMerge}
 	var pending []byte
-	idle := 0
+	idle, missing := 0, 0
 	var rotatedAt time.Time
 	rw := t.RotateWait
 	if rw == 0 {
@@ -161,23 +220,42 @@ func (t *Tailer) Run(ctx context.Context) {
 		case <-time.After(t.Poll):
 		}
 		idle++
-		if idle%8 == 0 { // every ~2s check for deletion / truncation
+		if idle%8 == 0 { // every ~2s check for deletion / replacement / truncation
 			st, err := os.Stat(t.Path)
-			if err != nil || Inode(st) != Inode(fi) {
-				// file gone or replaced under us; if it is really gone the pod was deleted
+			if err != nil {
+				// Path gone. Between kubelet's rename and the runtime's reopen the path is
+				// briefly absent, so end the stream only when it is still gone ~1 s later.
+				missing++
+				if missing < 2 {
+					idle = 4 // look again after 4 polls (~1 s) instead of the usual 8
+					continue
+				}
+				if len(pending) > 0 {
+					off += int64(len(pending))
+					t.emit(&merger, pending, off)
+					pending = nil
+				}
 				if l, ok := merger.Flush(); ok {
 					t.Sink.Record(Record{Meta: t.Meta, Key: t.key, Time: l.Time, Stderr: l.Stderr, Msg: l.Msg, StartOff: t.mergeAt, EndOff: off})
 				}
-				if err != nil {
-					t.Sink.StreamEnd(t.Meta, t.key)
-				}
+				t.Sink.StreamEnd(t.Meta, t.key)
 				return
 			}
-			if st.Size() < off { // truncated in place (CRI-O log_size_max, cri-dockerd)
-				off = 0
-				f.Seek(0, io.SeekStart)
-				r.Reset(f)
-				pending = nil
+			missing = 0
+			if Inode(st) != Inode(fi) {
+				// Replaced under us (rotation noticed here before the discoverer said so).
+				// Keep draining this inode for the grace period: the runtime may still write
+				// to it until it reopens the new path. Returning here lost those lines.
+				if rotatedAt.IsZero() {
+					rotatedAt = time.Now()
+				}
+				continue
+			}
+			if st.Size() < off { // truncated in place (CRI-O log_size_max, cri-dockerd): new content, new identity
+				if l, ok := merger.Flush(); ok {
+					t.Sink.Record(Record{Meta: t.Meta, Key: t.key, Time: l.Time, Stderr: l.Stderr, Msg: l.Msg, StartOff: t.mergeAt, EndOff: off})
+				}
+				return // the discoverer starts a fresh tailer, keyed by the new first line
 			}
 		}
 	}

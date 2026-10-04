@@ -9,7 +9,7 @@ PODS=$ROOT/pods; HUBD=$ROOT/hub; AGD=$ROOT/agent
 mkdir -p "$PODS" "$HUBD" "$AGD"
 PORT=$((20000 + RANDOM % 20000))
 TOKEN=e2e-token
-cleanup(){ kill ${HUB_PID:-} ${AG_PID:-} ${HUBB_PID:-} 2>/dev/null || true; rm -rf "$ROOT"; }
+cleanup(){ kill ${HUB_PID:-} ${AG_PID:-} ${HUBB_PID:-} ${HUBC_PID:-} 2>/dev/null || true; rm -rf "$ROOT"; }
 trap cleanup EXIT
 pass(){ echo "  ✔ $1"; }
 fail(){ echo "  ✘ $1"; exit 1; }
@@ -25,7 +25,7 @@ PY
 line(){ gen 1 "$1"; }
 
 cat > "$ROOT/hub.yaml" <<Y
-listen: ":$PORT"
+listen: "127.0.0.1:$PORT"
 dataDir: $HUBD
 auth:
   ingestToken: $TOKEN
@@ -46,7 +46,7 @@ batch: { flushInterval: 200ms }
 heartbeatInterval: 1s
 health: ":0"
 Y
-start_hub(){ ./bin/p10logs-hub --config "$ROOT/hub.yaml" 2>"$ROOT/hub.log" & HUB_PID=$!; for i in $(seq 1 50); do curl -fs "http://127.0.0.1:$PORT/healthz" >/dev/null 2>&1 && return; sleep 0.1; done; cat "$ROOT/hub.log"; fail "hub did not start"; }
+start_hub(){ ./bin/p10logs-hub --config "$ROOT/hub.yaml" 2>"$ROOT/hub.log" & HUB_PID=$!; for i in $(seq 1 150); do curl -fs "http://127.0.0.1:$PORT/healthz" >/dev/null 2>&1 && return; sleep 0.1; done; cat "$ROOT/hub.log"; fail "hub did not start"; }
 start_agent(){ ./bin/p10logs-agent --config "$ROOT/agent.yaml" 2>>"$ROOT/agent.log" & AG_PID=$!; }
 q(){ curl -fs -u u:p "http://127.0.0.1:$PORT/api/v1/query?$1"; }
 count(){ q "$1" | python3 -c 'import json,sys;print(len(json.load(sys.stdin)["lines"]))'; }
@@ -62,6 +62,14 @@ start_hub; start_agent
 wait_count "namespace=payments&start=-1h&limit=1000" 53 && pass "53 lines (50 live + 1 json + 2 gz backfill)" || fail "ingest"
 [ "$(count 'namespace=payments&start=-1h&q=level%3Derror')" = 1 ] && pass "filter level=error" || fail "filter"
 [ "$(count 'namespace=payments&start=-1h&q=rotated')" = 2 ] && pass "gz backfill searchable" || fail "backfill"
+# relative ranges in days: "-7d" used to be rejected by ParseDuration and silently became the 1h default
+python3 - >> "$P1/0.log" <<'PY'
+import time
+t=time.time_ns()-2*86400*10**9
+print(time.strftime("%Y-%m-%dT%H:%M:%S",time.gmtime(t//10**9))+".%09dZ stdout F ancient line from two days ago"%(t%10**9))
+PY
+wait_count "namespace=payments&start=-7d&q=ancient&limit=10" 1 >/dev/null && pass "start=-7d reaches a 2-day-old line" || fail "-7d range"
+[ "$(count 'namespace=payments&start=-24h&q=ancient&limit=10')" = 0 ] && pass "start=-24h excludes it" || fail "-24h range"
 
 echo "2. live tail (SSE)"
 ( curl -sN -u u:p "http://127.0.0.1:$PORT/api/v1/tail?namespace=payments" > "$ROOT/tail.out" & echo $! > "$ROOT/tail.pid" )
@@ -127,7 +135,7 @@ start_hub
 echo "10. federation: console hub B federating A"
 PORT2=$((PORT + 1))
 cat > "$ROOT/hubB.yaml" <<Y
-listen: ":$PORT2"
+listen: "127.0.0.1:$PORT2"
 dataDir: $ROOT/hubB
 auth: { ingestToken: other, ui: { mode: none } }
 federation: { enabled: true, peers: [ { name: a, url: "http://127.0.0.1:$PORT", token: fedtok } ] }
@@ -162,7 +170,7 @@ for i in $(seq 1 120); do curl -s -o /dev/null "http://127.0.0.1:$MPORT/" 2>/dev
 # the hub creates the bucket itself at startup (EnsureBucket)
 PORT3=$((PORT + 3))
 cat > "$ROOT/hubC.yaml" <<Y
-listen: ":$PORT3"
+listen: "127.0.0.1:$PORT3"
 dataDir: $ROOT/hubC
 auth: { ingestToken: ctok3, ui: { mode: none } }
 storage:
@@ -179,8 +187,9 @@ for b in 1 2 3; do
   curl -fs -o /dev/null -X POST -H 'Authorization: Bearer ctok3' -H 'X-P10-Cluster: cold' --data-binary @"$ROOT/batch.ndjson" "http://127.0.0.1:$PORT3/api/v1/push"
   sleep 1.5
 done
-ok=0; for i in $(seq 1 40); do r=$(curl -s "http://127.0.0.1:$PORT3/api/v1/status" | python3 -c 'import json,sys;print(json.load(sys.stdin)["hub"]["remote_chunks"])'); [ "${r:-0}" -ge 1 ] && ok=1 && break; sleep 0.5; done
-[ $ok = 1 ] && pass "chunks offloaded to S3 ($r)" || fail "offload: $(tail -3 "$ROOT/hubC.log")"
+# wait until every chunk is sealed and copied, so the rebuild-from-bucket check below is exact
+ok=0; for i in $(seq 1 80); do r=$(curl -s "http://127.0.0.1:$PORT3/api/v1/status" | python3 -c 'import json,sys;h=json.load(sys.stdin)["hub"];print("%d/%d open=%d" % (h["remote_chunks"],h["chunks"],h["open_chunks"]))'); case "$r" in *" open=0") [ "${r%%/*}" -ge 1 ] && [ "${r%%/*}" = "$(echo "$r" | cut -d/ -f2 | cut -d' ' -f1)" ] && ok=1 && break;; esac; sleep 0.5; done
+[ $ok = 1 ] && pass "all chunks sealed and offloaded to S3 ($r)" || fail "offload: $r $(tail -3 "$ROOT/hubC.log")"
 nchunks=$(find "$ROOT/hubC/days" -name '*.chunk' | wc -l | tr -d ' ')
 find "$ROOT/hubC/days" -name '*.chunk' -delete
 n=$(curl -fs "http://127.0.0.1:$PORT3/api/v1/query?cluster=cold&start=-1h&q=cold&limit=100" | python3 -c 'import json,sys;d=json.load(sys.stdin);print(len(d["lines"]))')
@@ -191,7 +200,7 @@ rm -rf "$ROOT/hubC"; mkdir -p "$ROOT/hubC"
 ./bin/p10logs-hub --config "$ROOT/hubC.yaml" 2>>"$ROOT/hubC.log" & HUBC_PID=$!
 for i in $(seq 1 50); do curl -fs "http://127.0.0.1:$PORT3/healthz" >/dev/null 2>&1 && break; sleep 0.1; done
 n=$(curl -fs "http://127.0.0.1:$PORT3/api/v1/query?cluster=cold&start=-1h&limit=100" | python3 -c 'import json,sys;print(len(json.load(sys.stdin)["lines"]))')
-[ "$n" -ge 24 ] && pass "empty data dir + bucket → --rebuild-index recovers $n lines" || fail "rebuild from bucket got $n"
+[ "$n" = 36 ] && pass "empty data dir + bucket → --rebuild-index recovers all 36 lines" || fail "rebuild from bucket got $n, want 36"
 ./bin/p10logs-hub --config "$ROOT/hubC.yaml" --check 2>/dev/null | grep -q '"ok":true' && pass "--check ok" || fail "--check"
 kill $HUBC_PID 2>/dev/null || true
 docker rm -f $MC >/dev/null 2>&1 || true

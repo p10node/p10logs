@@ -17,6 +17,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"regexp"
 	"strings"
 	"sync"
 	"time"
@@ -95,14 +96,51 @@ func (w *Watcher) Lookup(uid string) map[string]string {
 type podObj struct {
 	Metadata struct {
 		UID             string            `json:"uid"`
+		Name            string            `json:"name"`
 		ResourceVersion string            `json:"resourceVersion"`
 		Labels          map[string]string `json:"labels"`
 		Annotations     map[string]string `json:"annotations"`
+		OwnerReferences []struct {
+			Kind string `json:"kind"`
+			Name string `json:"name"`
+		} `json:"ownerReferences"`
 	} `json:"metadata"`
 }
 
+// OwnerLabel is the synthetic label key carrying "<Kind>/<name>" of the workload that owns
+// the pod (Deployment, StatefulSet, DaemonSet, Job, CronJob, or Pod for bare/static pods).
+// Kubernetes label keys cannot start with "_", so it never collides with a real label.
+const OwnerLabel = "_owner"
+
+var (
+	rsHash  = regexp.MustCompile(`-[bcdfghjklmnpqrstvwxz0-9]{5,10}$`) // ReplicaSet name = <deployment>-<pod-template-hash>
+	cronJob = regexp.MustCompile(`-\d{8,}$`)                          // Job name = <cronjob>-<scheduled minute>
+)
+
+// Owner derives the owning workload from a pod's ownerReferences without extra API calls:
+// a ReplicaSet owner is reported as its Deployment, a Job named like a CronJob run as the
+// CronJob.
+func Owner(p *podObj) string {
+	if len(p.Metadata.OwnerReferences) == 0 {
+		return "Pod/" + p.Metadata.Name
+	}
+	o := p.Metadata.OwnerReferences[0]
+	switch o.Kind {
+	case "ReplicaSet":
+		return "Deployment/" + rsHash.ReplaceAllString(o.Name, "")
+	case "Job":
+		if cronJob.MatchString(o.Name) {
+			return "CronJob/" + cronJob.ReplaceAllString(o.Name, "")
+		}
+		return "Job/" + o.Name
+	case "Node": // static pod mirror
+		return "Pod/" + strings.TrimSuffix(p.Metadata.Name, "-"+o.Name)
+	}
+	return o.Kind + "/" + o.Name
+}
+
 func (w *Watcher) select_(p *podObj) map[string]string {
-	out := map[string]string{}
+	out := map[string]string{OwnerLabel: Owner(p)}
 	for _, k := range w.cfg.Labels {
 		if v, ok := p.Metadata.Labels[k]; ok {
 			out[k] = v

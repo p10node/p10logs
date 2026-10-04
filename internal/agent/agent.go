@@ -43,7 +43,7 @@ func Run(ctx context.Context, cfg *Config, log *slog.Logger) error {
 	}
 	batcher := ship.NewBatcher(ship.BatcherConfig{MaxBytes: cfg.Batch.MaxBytes, MaxLines: cfg.Batch.MaxLines, FlushInterval: cfg.Batch.FlushInterval,
 		LinesPerSec: cfg.RateLimit.LinesPerSecondPerContainer, Multiline: cfg.Multiline.Enabled, StartPattern: cfg.Multiline.StartPattern,
-		MultiMaxLines: cfg.Multiline.MaxLines}, cfg.Ship.MaxInFlight)
+		MultiMaxLines: cfg.Multiline.MaxLines, MultiTimeout: cfg.Multiline.Timeout}, cfg.Ship.MaxInFlight)
 	shipper := &ship.Shipper{Client: client, Spool: spool, Log: log, OnAck: func(acks []ship.Ack) {
 		for _, a := range acks {
 			p, _ := pos.Get(a.Key)

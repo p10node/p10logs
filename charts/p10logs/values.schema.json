@@ -3,140 +3,424 @@
   "title": "p10logs values",
   "type": "object",
   "definitions": {
-    "duration": { "type": "string", "pattern": "^[0-9]+(ns|us|µs|ms|s|m|h)([0-9]+(ns|us|µs|ms|s|m|h))*$" },
+    "duration": {
+      "type": "string",
+      "pattern": "^[0-9]+(ns|us|\u00b5s|ms|s|m|h)([0-9]+(ns|us|\u00b5s|ms|s|m|h))*$"
+    },
     "image": {
       "type": "object",
       "properties": {
-        "repository": { "type": "string", "minLength": 1 },
-        "tag": { "type": "string" },
-        "pullPolicy": { "type": "string", "enum": ["Always", "IfNotPresent", "Never"] }
+        "repository": {
+          "type": "string",
+          "minLength": 1
+        },
+        "tag": {
+          "type": "string"
+        },
+        "pullPolicy": {
+          "type": "string",
+          "enum": [
+            "Always",
+            "IfNotPresent",
+            "Never"
+          ]
+        }
       }
     },
-    "resources": { "type": "object" },
-    "stringList": { "type": "array", "items": { "type": "string" } }
+    "resources": {
+      "type": "object"
+    },
+    "stringList": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
   },
   "properties": {
     "global": {
       "type": "object",
       "properties": {
-        "clusterName": { "type": "string", "minLength": 1, "pattern": "^[^/\\\\]+$", "description": "Unique per hub; no slashes." },
-        "imageRegistry": { "type": "string" },
-        "imagePullSecrets": { "type": "array" }
+        "clusterName": {
+          "type": "string",
+          "minLength": 1,
+          "pattern": "^[^/\\\\]+$",
+          "description": "Unique per hub; no slashes."
+        },
+        "imageRegistry": {
+          "type": "string"
+        },
+        "imagePullSecrets": {
+          "type": "array"
+        }
       },
-      "required": ["clusterName"]
+      "required": [
+        "clusterName"
+      ]
     },
     "agent": {
       "type": "object",
       "properties": {
-        "enabled": { "type": "boolean" },
-        "image": { "$ref": "#/definitions/image" },
+        "enabled": {
+          "type": "boolean"
+        },
+        "image": {
+          "$ref": "#/definitions/image"
+        },
         "hub": {
           "type": "object",
           "properties": {
-            "url": { "type": "string", "pattern": "^(https?://.*)?$" },
-            "token": { "type": "string" },
-            "existingSecret": { "type": "string" },
-            "tls": { "type": "object", "properties": { "insecureSkipVerify": { "type": "boolean" }, "caSecret": { "type": "string" } } }
+            "url": {
+              "type": "string",
+              "pattern": "^(https?://.*)?$"
+            },
+            "token": {
+              "type": "string"
+            },
+            "existingSecret": {
+              "type": "string"
+            },
+            "tls": {
+              "type": "object",
+              "properties": {
+                "insecureSkipVerify": {
+                  "type": "boolean"
+                },
+                "caSecret": {
+                  "type": "string"
+                }
+              }
+            }
           }
         },
         "collect": {
           "type": "object",
           "properties": {
-            "includeNamespaces": { "$ref": "#/definitions/stringList" },
-            "excludeNamespaces": { "$ref": "#/definitions/stringList" },
-            "excludeContainers": { "$ref": "#/definitions/stringList" },
-            "self": { "type": "boolean" }
+            "includeNamespaces": {
+              "$ref": "#/definitions/stringList"
+            },
+            "excludeNamespaces": {
+              "$ref": "#/definitions/stringList"
+            },
+            "excludeContainers": {
+              "$ref": "#/definitions/stringList"
+            },
+            "self": {
+              "type": "boolean"
+            }
           }
         },
         "enrich": {
           "type": "object",
-          "properties": { "enabled": { "type": "boolean" }, "labels": { "$ref": "#/definitions/stringList" }, "annotations": { "$ref": "#/definitions/stringList" } }
+          "properties": {
+            "enabled": {
+              "type": "boolean"
+            },
+            "labels": {
+              "$ref": "#/definitions/stringList"
+            },
+            "annotations": {
+              "$ref": "#/definitions/stringList"
+            }
+          }
         },
-        "backfill": { "type": "object", "properties": { "compressed": { "type": "boolean" } } },
-        "heartbeatInterval": { "$ref": "#/definitions/duration" },
-        "ship": { "type": "object", "properties": { "maxInFlight": { "type": "integer", "minimum": 1, "maximum": 64 } } },
+        "backfill": {
+          "type": "object",
+          "properties": {
+            "compressed": {
+              "type": "boolean"
+            }
+          }
+        },
+        "heartbeatInterval": {
+          "$ref": "#/definitions/duration"
+        },
+        "ship": {
+          "type": "object",
+          "properties": {
+            "maxInFlight": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 64
+            }
+          }
+        },
         "batch": {
           "type": "object",
           "properties": {
-            "maxBytes": { "type": "integer", "minimum": 65536 },
-            "maxLines": { "type": "integer", "minimum": 1 },
-            "flushInterval": { "$ref": "#/definitions/duration" }
+            "maxBytes": {
+              "type": "integer",
+              "minimum": 65536
+            },
+            "maxLines": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "flushInterval": {
+              "$ref": "#/definitions/duration"
+            }
           }
         },
-        "buffer": { "type": "object", "properties": { "maxBytes": { "type": "integer", "minimum": 0 } } },
-        "rateLimit": { "type": "object", "properties": { "linesPerSecondPerContainer": { "type": "number", "minimum": 0 } } },
+        "buffer": {
+          "type": "object",
+          "properties": {
+            "maxBytes": {
+              "type": "integer",
+              "minimum": 0
+            }
+          }
+        },
+        "rateLimit": {
+          "type": "object",
+          "properties": {
+            "linesPerSecondPerContainer": {
+              "type": "number",
+              "minimum": 0
+            }
+          }
+        },
         "multiline": {
           "type": "object",
           "properties": {
-            "enabled": { "type": "boolean" },
-            "startPattern": { "type": "string" },
-            "maxLines": { "type": "integer", "minimum": 2 },
-            "timeout": { "$ref": "#/definitions/duration" }
+            "enabled": {
+              "type": "boolean"
+            },
+            "startPattern": {
+              "type": "string"
+            },
+            "maxLines": {
+              "type": "integer",
+              "minimum": 2
+            },
+            "timeout": {
+              "$ref": "#/definitions/duration"
+            }
           }
         },
         "hostPaths": {
           "type": "object",
           "properties": {
-            "pods": { "type": "string", "pattern": "^/" },
-            "containers": { "type": "string" },
-            "docker": { "type": "string" },
-            "state": { "type": "string", "pattern": "^/" }
+            "pods": {
+              "type": "string",
+              "pattern": "^/"
+            },
+            "containers": {
+              "type": "string"
+            },
+            "docker": {
+              "type": "string"
+            },
+            "state": {
+              "type": "string",
+              "pattern": "^/"
+            }
           },
-          "required": ["pods", "state"]
+          "required": [
+            "pods",
+            "state"
+          ]
         },
-        "resources": { "$ref": "#/definitions/resources" },
-        "priorityClassName": { "type": "string" },
-        "tolerations": { "type": "array" },
-        "nodeSelector": { "type": "object" },
-        "affinity": { "type": "object" },
-        "updateStrategy": { "type": "object" },
-        "podAnnotations": { "type": "object" },
-        "podLabels": { "type": "object" },
-        "securityContext": { "type": "object" },
-        "serviceAccount": { "type": "object", "properties": { "create": { "type": "boolean" }, "name": { "type": "string" } } },
-        "logLevel": { "type": "string", "enum": ["debug", "info", "warn", "error"] }
+        "resources": {
+          "$ref": "#/definitions/resources"
+        },
+        "priorityClassName": {
+          "type": "string"
+        },
+        "tolerations": {
+          "type": "array"
+        },
+        "nodeSelector": {
+          "type": "object"
+        },
+        "affinity": {
+          "type": "object"
+        },
+        "updateStrategy": {
+          "type": "object"
+        },
+        "podAnnotations": {
+          "type": "object"
+        },
+        "podLabels": {
+          "type": "object"
+        },
+        "securityContext": {
+          "type": "object"
+        },
+        "serviceAccount": {
+          "type": "object",
+          "properties": {
+            "create": {
+              "type": "boolean"
+            },
+            "name": {
+              "type": "string"
+            }
+          }
+        },
+        "logLevel": {
+          "type": "string",
+          "enum": [
+            "debug",
+            "info",
+            "warn",
+            "error"
+          ]
+        }
       }
     },
     "hub": {
       "type": "object",
       "properties": {
-        "enabled": { "type": "boolean" },
-        "image": { "$ref": "#/definitions/image" },
+        "enabled": {
+          "type": "boolean"
+        },
+        "image": {
+          "$ref": "#/definitions/image"
+        },
         "auth": {
           "type": "object",
           "properties": {
-            "ingestToken": { "type": "string" },
-            "existingSecret": { "type": "string" },
-            "apiTokens": { "$ref": "#/definitions/stringList" },
-            "clusterTokens": { "type": "array", "items": { "type": "object", "required": ["token", "clusters"],
-              "properties": { "token": { "type": "string", "minLength": 8 }, "clusters": { "$ref": "#/definitions/stringList" } } } },
-            "roles": { "type": "array", "items": { "type": "object", "required": ["name"],
-              "properties": { "name": { "type": "string" }, "users": { "$ref": "#/definitions/stringList" }, "domains": { "$ref": "#/definitions/stringList" },
-                "apiTokens": { "$ref": "#/definitions/stringList" }, "clusters": { "$ref": "#/definitions/stringList" }, "namespaces": { "$ref": "#/definitions/stringList" } } } },
-            "publicUrl": { "type": "string", "pattern": "^(https?://.*)?$" },
+            "ingestToken": {
+              "type": "string"
+            },
+            "existingSecret": {
+              "type": "string"
+            },
+            "apiTokens": {
+              "$ref": "#/definitions/stringList"
+            },
+            "clusterTokens": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": [
+                  "token",
+                  "clusters"
+                ],
+                "properties": {
+                  "token": {
+                    "type": "string",
+                    "minLength": 8
+                  },
+                  "clusters": {
+                    "$ref": "#/definitions/stringList"
+                  }
+                }
+              }
+            },
+            "roles": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": [
+                  "name"
+                ],
+                "properties": {
+                  "name": {
+                    "type": "string"
+                  },
+                  "users": {
+                    "$ref": "#/definitions/stringList"
+                  },
+                  "domains": {
+                    "$ref": "#/definitions/stringList"
+                  },
+                  "apiTokens": {
+                    "$ref": "#/definitions/stringList"
+                  },
+                  "clusters": {
+                    "$ref": "#/definitions/stringList"
+                  },
+                  "namespaces": {
+                    "$ref": "#/definitions/stringList"
+                  }
+                }
+              }
+            },
+            "publicUrl": {
+              "type": "string",
+              "pattern": "^(https?://.*)?$"
+            },
             "ui": {
               "type": "object",
               "properties": {
-                "mode": { "type": "string", "enum": ["none", "basic", "oidc"] },
+                "mode": {
+                  "type": "string",
+                  "enum": [
+                    "none",
+                    "basic",
+                    "oidc"
+                  ]
+                },
                 "basic": {
                   "type": "object",
-                  "properties": { "username": { "type": "string" }, "password": { "type": "string" }, "existingSecret": { "type": "string" } }
+                  "properties": {
+                    "username": {
+                      "type": "string"
+                    },
+                    "password": {
+                      "type": "string"
+                    },
+                    "existingSecret": {
+                      "type": "string"
+                    }
+                  }
                 },
                 "oidc": {
                   "type": "object",
                   "properties": {
-                    "issuerUrl": { "type": "string", "pattern": "^(https?://.*)?$" },
-                    "clientId": { "type": "string" },
-                    "clientSecretRef": { "type": "string" },
-                    "allowedEmails": { "$ref": "#/definitions/stringList" },
-                    "allowedDomains": { "$ref": "#/definitions/stringList" }
+                    "issuerUrl": {
+                      "type": "string",
+                      "pattern": "^(https?://.*)?$"
+                    },
+                    "clientId": {
+                      "type": "string"
+                    },
+                    "clientSecretRef": {
+                      "type": "string"
+                    },
+                    "allowedEmails": {
+                      "$ref": "#/definitions/stringList"
+                    },
+                    "allowedDomains": {
+                      "$ref": "#/definitions/stringList"
+                    }
                   }
                 }
               },
               "allOf": [
-                { "if": { "properties": { "mode": { "const": "oidc" } } },
-                  "then": { "properties": { "oidc": { "required": ["issuerUrl", "clientId", "clientSecretRef"],
-                    "properties": { "issuerUrl": { "minLength": 1 }, "clientId": { "minLength": 1 }, "clientSecretRef": { "minLength": 1 } } } } } }
+                {
+                  "if": {
+                    "properties": {
+                      "mode": {
+                        "const": "oidc"
+                      }
+                    }
+                  },
+                  "then": {
+                    "properties": {
+                      "oidc": {
+                        "required": [
+                          "issuerUrl",
+                          "clientId",
+                          "clientSecretRef"
+                        ],
+                        "properties": {
+                          "issuerUrl": {
+                            "minLength": 1
+                          },
+                          "clientId": {
+                            "minLength": 1
+                          },
+                          "clientSecretRef": {
+                            "minLength": 1
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
               ]
             }
           }
@@ -147,71 +431,217 @@
             "persistence": {
               "type": "object",
               "properties": {
-                "enabled": { "type": "boolean" },
-                "size": { "type": "string", "pattern": "^[0-9]+(Ki|Mi|Gi|Ti|k|M|G|T)?$" },
-                "storageClass": { "type": "string" },
-                "accessModes": { "$ref": "#/definitions/stringList" },
-                "existingClaim": { "type": "string" },
-                "retainOnDelete": { "type": "boolean" }
+                "enabled": {
+                  "type": "boolean"
+                },
+                "size": {
+                  "type": "string",
+                  "pattern": "^[0-9]+(Ki|Mi|Gi|Ti|k|M|G|T)?$"
+                },
+                "storageClass": {
+                  "type": "string"
+                },
+                "accessModes": {
+                  "$ref": "#/definitions/stringList"
+                },
+                "existingClaim": {
+                  "type": "string"
+                },
+                "retainOnDelete": {
+                  "type": "boolean"
+                }
               }
             },
             "retention": {
               "type": "object",
               "properties": {
-                "maxAge": { "$ref": "#/definitions/duration" },
-                "maxDiskBytes": { "type": "integer", "minimum": 0 },
+                "maxAge": {
+                  "$ref": "#/definitions/duration"
+                },
+                "maxDiskBytes": {
+                  "type": "integer",
+                  "minimum": 0
+                },
                 "overrides": {
                   "type": "array",
-                  "items": { "type": "object", "required": ["match", "maxAge"],
-                    "properties": { "match": { "type": "string", "minLength": 1 }, "maxAge": { "$ref": "#/definitions/duration" } } }
+                  "items": {
+                    "type": "object",
+                    "required": [
+                      "match",
+                      "maxAge"
+                    ],
+                    "properties": {
+                      "match": {
+                        "type": "string",
+                        "minLength": 1
+                      },
+                      "maxAge": {
+                        "$ref": "#/definitions/duration"
+                      }
+                    }
+                  }
                 }
               }
             },
             "segment": {
               "type": "object",
               "properties": {
-                "targetBytes": { "type": "integer", "minimum": 65536 },
-                "maxOpenAge": { "$ref": "#/definitions/duration" },
-                "compression": { "type": "string", "enum": ["zstd", "none"] }
+                "targetBytes": {
+                  "type": "integer",
+                  "minimum": 65536
+                },
+                "maxOpenAge": {
+                  "$ref": "#/definitions/duration"
+                },
+                "compression": {
+                  "type": "string",
+                  "enum": [
+                    "zstd",
+                    "none"
+                  ]
+                }
               }
             },
-            "wal": { "type": "object", "properties": { "segmentBytes": { "type": "integer", "minimum": 1048576 } } },
+            "wal": {
+              "type": "object",
+              "properties": {
+                "segmentBytes": {
+                  "type": "integer",
+                  "minimum": 1048576
+                }
+              }
+            },
             "memtable": {
               "type": "object",
               "properties": {
-                "flushBytes": { "type": "integer", "minimum": 4096 },
-                "flushAge": { "$ref": "#/definitions/duration" },
-                "maxBytes": { "type": "integer", "minimum": 1048576 }
+                "flushBytes": {
+                  "type": "integer",
+                  "minimum": 4096
+                },
+                "flushAge": {
+                  "$ref": "#/definitions/duration"
+                },
+                "maxBytes": {
+                  "type": "integer",
+                  "minimum": 1048576
+                }
               }
             },
-            "objectStore": { "type": "object",
-              "properties": { "enabled": { "type": "boolean" }, "endpoint": { "type": "string" }, "bucket": { "type": "string" }, "region": { "type": "string" },
-                "prefix": { "type": "string" }, "accessKeySecret": { "type": "string" }, "pathStyle": { "type": "boolean" },
-                "uploadAfter": { "$ref": "#/definitions/duration" }, "cacheBytes": { "type": "integer", "minimum": 0 } },
-              "allOf": [ { "if": { "properties": { "enabled": { "const": true } } },
-                "then": { "required": ["endpoint", "bucket", "accessKeySecret"], "properties": { "endpoint": { "minLength": 1 }, "bucket": { "minLength": 1 }, "accessKeySecret": { "minLength": 1 } } } } ] }
+            "objectStore": {
+              "type": "object",
+              "properties": {
+                "enabled": {
+                  "type": "boolean"
+                },
+                "endpoint": {
+                  "type": "string"
+                },
+                "bucket": {
+                  "type": "string"
+                },
+                "region": {
+                  "type": "string"
+                },
+                "prefix": {
+                  "type": "string"
+                },
+                "accessKeySecret": {
+                  "type": "string"
+                },
+                "pathStyle": {
+                  "type": "boolean"
+                },
+                "uploadAfter": {
+                  "$ref": "#/definitions/duration"
+                },
+                "cacheBytes": {
+                  "type": "integer",
+                  "minimum": 0
+                }
+              },
+              "allOf": [
+                {
+                  "if": {
+                    "properties": {
+                      "enabled": {
+                        "const": true
+                      }
+                    }
+                  },
+                  "then": {
+                    "required": [
+                      "endpoint",
+                      "bucket",
+                      "accessKeySecret"
+                    ],
+                    "properties": {
+                      "endpoint": {
+                        "minLength": 1
+                      },
+                      "bucket": {
+                        "minLength": 1
+                      },
+                      "accessKeySecret": {
+                        "minLength": 1
+                      }
+                    }
+                  }
+                }
+              ]
+            }
           }
         },
         "limits": {
           "type": "object",
           "properties": {
-            "maxBatchBytes": { "type": "integer", "minimum": 65536 },
-            "maxLineBytes": { "type": "integer", "minimum": 1024 },
-            "perCluster": { "type": "object", "properties": { "bytesPerSecond": { "type": "integer", "minimum": 0 } } }
+            "maxBatchBytes": {
+              "type": "integer",
+              "minimum": 65536
+            },
+            "maxLineBytes": {
+              "type": "integer",
+              "minimum": 1024
+            },
+            "perCluster": {
+              "type": "object",
+              "properties": {
+                "bytesPerSecond": {
+                  "type": "integer",
+                  "minimum": 0
+                }
+              }
+            }
           }
         },
         "query": {
           "type": "object",
           "properties": {
-            "maxConcurrent": { "type": "integer", "minimum": 1 },
-            "maxScanBytes": { "type": "integer", "minimum": 1048576 },
-            "timeout": { "$ref": "#/definitions/duration" },
+            "maxConcurrent": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "maxScanBytes": {
+              "type": "integer",
+              "minimum": 1048576
+            },
+            "timeout": {
+              "$ref": "#/definitions/duration"
+            },
             "tail": {
               "type": "object",
               "properties": {
-                "maxClients": { "type": "integer", "minimum": 1 },
-                "maxLinesPerSecondPerClient": { "type": "integer", "minimum": 10 },
-                "bufferLines": { "type": "integer", "minimum": 100 }
+                "maxClients": {
+                  "type": "integer",
+                  "minimum": 1
+                },
+                "maxLinesPerSecondPerClient": {
+                  "type": "integer",
+                  "minimum": 10
+                },
+                "bufferLines": {
+                  "type": "integer",
+                  "minimum": 100
+                }
               }
             }
           }
@@ -219,22 +649,112 @@
         "federation": {
           "type": "object",
           "properties": {
-            "enabled": { "type": "boolean" },
-            "peers": { "type": "array", "items": { "type": "object", "required": ["name", "url", "tokenSecret"],
-              "properties": { "name": { "type": "string", "pattern": "^[a-zA-Z0-9._-]+$" }, "url": { "type": "string" }, "tokenSecret": { "type": "string" } } } }
+            "enabled": {
+              "type": "boolean"
+            },
+            "peers": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": [
+                  "name",
+                  "url",
+                  "tokenSecret"
+                ],
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "pattern": "^[a-zA-Z0-9._-]+$"
+                  },
+                  "url": {
+                    "type": "string"
+                  },
+                  "tokenSecret": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
           }
         },
-        "service": { "type": "object", "properties": { "type": { "type": "string", "enum": ["ClusterIP", "NodePort", "LoadBalancer"] }, "port": { "type": "integer", "minimum": 1, "maximum": 65535 } } },
-        "ingress": { "type": "object", "properties": { "enabled": { "type": "boolean" } } },
-        "httpRoute": { "type": "object", "properties": { "enabled": { "type": "boolean" } } },
-        "resources": { "$ref": "#/definitions/resources" },
-        "securityContext": { "type": "object" },
-        "serviceAccount": { "type": "object" },
-        "logLevel": { "type": "string", "enum": ["debug", "info", "warn", "error"] },
-        "metrics": { "type": "object", "properties": { "enabled": { "type": "boolean" }, "serviceMonitor": { "type": "object" } } }
+        "service": {
+          "type": "object",
+          "properties": {
+            "type": {
+              "type": "string",
+              "enum": [
+                "ClusterIP",
+                "NodePort",
+                "LoadBalancer"
+              ]
+            },
+            "port": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 65535
+            },
+            "nodePort": {
+              "type": [
+                "integer",
+                "null"
+              ],
+              "minimum": 30000,
+              "maximum": 32767
+            }
+          }
+        },
+        "ingress": {
+          "type": "object",
+          "properties": {
+            "enabled": {
+              "type": "boolean"
+            }
+          }
+        },
+        "httpRoute": {
+          "type": "object",
+          "properties": {
+            "enabled": {
+              "type": "boolean"
+            }
+          }
+        },
+        "resources": {
+          "$ref": "#/definitions/resources"
+        },
+        "securityContext": {
+          "type": "object"
+        },
+        "serviceAccount": {
+          "type": "object"
+        },
+        "logLevel": {
+          "type": "string",
+          "enum": [
+            "debug",
+            "info",
+            "warn",
+            "error"
+          ]
+        },
+        "metrics": {
+          "type": "object",
+          "properties": {
+            "enabled": {
+              "type": "boolean"
+            },
+            "serviceMonitor": {
+              "type": "object"
+            }
+          }
+        }
       }
     },
-    "nameOverride": { "type": "string" },
-    "fullnameOverride": { "type": "string" }
+    "nameOverride": {
+      "type": "string"
+    },
+    "fullnameOverride": {
+      "type": "string"
+    }
   }
 }

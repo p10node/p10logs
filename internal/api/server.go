@@ -218,7 +218,7 @@ func selectorFrom(q url.Values, localSIDs []string) index.Selector {
 	return sel
 }
 
-// parseTime accepts RFC3339, "now", relative "-15m", unix seconds/millis/nanos.
+// parseTime accepts RFC3339, "now", relative "-15m" / "-7d" / "-2w", unix seconds/millis/nanos.
 func parseTime(v string, def int64) int64 {
 	v = strings.TrimSpace(v)
 	if v == "" {
@@ -228,7 +228,7 @@ func parseTime(v string, def int64) int64 {
 		return time.Now().UnixNano()
 	}
 	if strings.HasPrefix(v, "-") {
-		if d, err := time.ParseDuration(v[1:]); err == nil {
+		if d, ok := parseRelative(v[1:]); ok {
 			return time.Now().Add(-d).UnixNano()
 		}
 	}
@@ -248,6 +248,28 @@ func parseTime(v string, def int64) int64 {
 		return t.UnixNano()
 	}
 	return def
+}
+
+// parseRelative parses a duration with the Go units plus "d" (days) and "w" (weeks),
+// which time.ParseDuration rejects: "7d" used to fall back to the one-hour default.
+func parseRelative(v string) (time.Duration, bool) {
+	if n := len(v); n > 1 {
+		mult := time.Duration(0)
+		switch v[n-1] {
+		case 'd':
+			mult = 24 * time.Hour
+		case 'w':
+			mult = 7 * 24 * time.Hour
+		}
+		if mult != 0 {
+			if f, err := strconv.ParseFloat(v[:n-1], 64); err == nil && f >= 0 {
+				return time.Duration(f * float64(mult)), true
+			}
+			return 0, false
+		}
+	}
+	d, err := time.ParseDuration(v)
+	return d, err == nil && d >= 0
 }
 
 // scope applies the caller's role (namespace/cluster allow-lists) to a selector.

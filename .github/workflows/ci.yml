@@ -30,3 +30,11 @@ jobs:
         with: { install_only: true }
       - uses: azure/setup-helm@v4
       - run: ./hack/e2e-kind.sh
+  kind-multi:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: helm/kind-action@v1
+        with: { install_only: true }
+      - uses: azure/setup-helm@v4
+      - run: ./hack/e2e-multi.sh

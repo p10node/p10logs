@@ -26,6 +26,7 @@
 html,body{height:100%}
 body{margin:0;background:var(--bg);color:var(--fg);font:13px/1.45 var(--ui);overflow:hidden}
 *{box-sizing:border-box}
+[hidden]{display:none!important} /* author display rules (.empty is display:grid) must not defeat the hidden attribute */
 button,input,select{font:inherit;color:inherit}
 button{cursor:pointer}
 a{color:var(--accent)}
@@ -44,16 +45,28 @@ a{color:var(--accent)}
 .dot.bad{background:var(--err)}
 .menubtn{display:none;background:none;border:1px solid var(--line);border-radius:6px;padding:4px 8px}
 .shell{display:grid;grid-template-columns:280px 1fr;min-height:0}
+.shell.full{grid-template-columns:1fr} /* agents tab: no stream tree, main takes the whole width */
 .side{border-right:1px solid var(--line);background:var(--panel);display:flex;flex-direction:column;min-height:0}
 .side .find{padding:8px;border-bottom:1px solid var(--line);display:flex;gap:6px}
 .find input{flex:1;background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:6px 8px;min-width:0}
+.side .tools{display:flex;gap:4px;padding:6px 8px 4px;align-items:center;flex-wrap:wrap}
+.btn.sm{padding:2px 7px;font-size:11.5px}
+.btn:disabled{opacity:.45;cursor:default}
+.tools select{background:var(--bg);border:1px solid var(--line);border-radius:6px;color:var(--fg);padding:3px 4px;font-size:11.5px;flex:1;min-width:0}
+.chips{display:flex;gap:4px;padding:2px 8px 8px;flex-wrap:wrap;border-bottom:1px solid var(--line)}
+.chips button{background:none;border:1px solid var(--line);border-radius:10px;padding:1px 8px;font-size:11px;color:var(--fg-muted)}
+.chips button[aria-pressed="true"]{background:var(--sel);color:var(--accent);border-color:var(--accent)}
+.node.wl{padding-left:32px;color:var(--fg)}
+.node.wl.part .nm{color:var(--accent)}
+.node .kd{font-size:9.5px;color:var(--fg-faint);border:1px solid var(--line);border-radius:4px;padding:0 4px;letter-spacing:.04em;flex:none}
+.earlier{position:absolute;top:8px;left:50%;transform:translateX(-50%);background:var(--panel);color:var(--fg-muted);border:1px solid var(--line);border-radius:14px;padding:3px 10px;font-size:11.5px;z-index:2;cursor:pointer}
 .tree{overflow:auto;flex:1;padding:6px 0 12px;font-family:var(--mono);font-size:12px}
 .node{display:flex;align-items:center;gap:6px;padding:3px 8px;white-space:nowrap;cursor:pointer;color:var(--fg-muted);user-select:none}
 .node:hover{background:var(--panel-2)}
 .node.cluster{color:var(--fg);font-family:var(--ui);font-weight:600;font-size:12.5px;padding-top:8px}
 .node.ns{padding-left:18px;color:var(--fg)}
-.node.pod{padding-left:32px}
-.node.ctr{padding-left:56px}
+.node.pod{padding-left:46px}
+.node.ctr{padding-left:70px}
 .node.ctr.sel{background:var(--sel);color:var(--fg)}
 .node .tw{width:10px;color:var(--fg-faint);font-size:10px}
 .node .nm{overflow:hidden;text-overflow:ellipsis;min-width:0;flex:1}
@@ -104,6 +117,8 @@ a{color:var(--accent)}
 .row.restart .msg{color:var(--accent)}
 .jk{color:var(--accent)}.jv{color:var(--fg)}.jn{color:var(--p4)}
 .hl{background:color-mix(in srgb,var(--warn) 35%,transparent);border-radius:2px}
+.tobottom{position:absolute;right:18px;bottom:34px;width:34px;height:34px;border-radius:50%;background:var(--panel);border:1px solid var(--line);color:var(--fg);box-shadow:0 4px 14px rgba(0,0,0,.3);z-index:2;display:grid;place-items:center;font-size:15px;padding:0}
+.tobottom:hover{border-color:var(--accent);color:var(--accent)}
 .newpill{position:absolute;bottom:34px;left:50%;transform:translateX(-50%);background:var(--accent);color:var(--accent-ink);border:0;border-radius:14px;padding:4px 12px;font-weight:600;box-shadow:0 4px 14px rgba(0,0,0,.3)}
 .empty{position:absolute;inset:0;display:grid;place-items:center;color:var(--fg-muted);text-align:center;padding:24px}
 .empty b{display:block;color:var(--fg);font-size:15px;margin-bottom:6px}
@@ -155,7 +170,17 @@ h2{font-size:13px;font-weight:600;margin:0 0 8px;color:var(--fg-muted);text-tran
 
   <div class="shell">
     <aside class="side" id="side">
-      <div class="find"><input id="find" placeholder="Filter pods…" aria-label="Filter pods"><button class="btn" id="refresh" title="Reload streams">↻</button></div>
+      <div class="find"><input id="find" placeholder="Filter pods, workloads, labels…" aria-label="Filter pods"><button class="btn" id="refresh" title="Reload streams">↻</button></div>
+      <div class="tools">
+        <button class="btn sm" id="clearsel" title="Unselect all streams" disabled>✕ <span id="selcount">0</span></button>
+        <button class="btn sm" id="expand" title="Expand all">⊞</button>
+        <button class="btn sm" id="collapse" title="Collapse all">⊟</button>
+        <button class="btn sm" id="liveonly" aria-pressed="false" title="Hide pods that no longer exist (their logs stay queryable)">live</button>
+        <select id="nsfilter" aria-label="Namespace"><option value="">all namespaces</option></select>
+      </div>
+      <div class="chips" id="kinds" role="group" aria-label="Workload kind">
+        <button data-k="" aria-pressed="true">All</button><button data-k="Deployment" aria-pressed="false">Deploy</button><button data-k="StatefulSet" aria-pressed="false">STS</button><button data-k="DaemonSet" aria-pressed="false">DS</button><button data-k="Job" aria-pressed="false">Job</button><button data-k="CronJob" aria-pressed="false">Cron</button><button data-k="Pod" aria-pressed="false">Pod</button>
+      </div>
       <div class="tree" id="tree"></div>
     </aside>
 
@@ -176,8 +201,10 @@ h2{font-size:13px;font-weight:600;margin:0 0 8px;color:var(--fg-muted);text-tran
         <div class="crumb" id="crumb"></div>
         <div class="logwrap">
           <div class="logview" id="view"><div class="spacer" id="spacer"><div class="rows" id="rows"></div></div></div>
+          <button class="earlier" id="earlier" hidden>↑ earlier lines</button>
           <div class="empty" id="empty"><div><b>Pick a container on the left</b>Tail one pod, or tick several to interleave them by timestamp.</div></div>
           <button class="newpill" id="newpill" hidden>↓ 0 new lines</button>
+          <button class="tobottom" id="tobottom" hidden title="Scroll to the newest line (End)" aria-label="Scroll to bottom">⤓</button>
           <div class="status">
             <span id="st-lines">0 lines</span><span id="st-scan"></span><span id="st-rate"></span><span class="drop" id="st-drop"></span><span class="errtxt" id="st-err"></span>
             <span class="grow"></span><span id="st-sel"></span>
@@ -207,9 +234,13 @@ const RANGE_MS={'15m':9e5,'1h':36e5,'6h':216e5,'24h':864e5,'7d':6048e5};
 const ROWH=20;
 
 // ---------- state ----------
-const S={sel:new Set(),range:'1h',follow:true,wrap:false,json:true,ts:'local',q:'',lines:[],view:[],dropped:0,pending:0,
-  streams:{},   // sid -> {cluster,ns,pod,uid,ctr,color,live}
-  tree:[],es:null,next:0,loading:false,collapsed:new Set()};
+const MAXBUF=10000;   // lines kept in memory while tailing; older ones are re-fetched from the hub on scroll-up
+const WIN=300;        // wrap mode: rows kept in the DOM; scroll up reveals more
+const PAGE=2000;      // lines per server page
+const S={sel:new Set(),range:'1h',follow:true,wrap:false,json:true,ts:'local',q:'',hl:[],lines:[],view:[],head:0,lastR:{},dropped:0,pending:0,gen:0,
+  streams:{},   // sid -> {cluster,ns,pod,uid,ctr,color,live,key,labels}
+  tree:[],es:null,next:0,loading:false,collapsed:new Set(),autoCollapsed:new Set(),
+  find:'',kinds:new Set(),ns:'',liveOnly:false};
 let lastStart=-1,lastEnd=-1;
 
 // ---------- API ----------
@@ -224,47 +255,96 @@ async function loadStreams(){
       const key=`${c.name}/${n.name}/${p.name}/${ct.name}`;
       S.streams[ct.id]={cluster:c.name,ns:n.name,pod:p.name,uid:p.uid,ctr:ct.name,key:(c.hub?c.hub+':':'')+key,color:PC[hash(key)%PC.length],live:p.live&&!ct.ended,last:ct.last_ts,labels:p.labels||{}};
     }
-    buildTree();
+    nsOptions();buildTree();
   }catch(e){$('st-err').textContent='streams: '+e.message}
 }
 
+// ---------- workloads ----------
+// The agent attaches `_owner` = "<Kind>/<name>" when enrichment is on. Without it, guess
+// from the pod name (ReplicaSet hash + 5-char suffix = Deployment, "-<digits>" = StatefulSet,
+// "-<minute>-<suffix>" = CronJob, "-<nodename>" = static pod); DaemonSet and Job pods both
+// end in a 5-char suffix and cannot be told apart by name alone.
+const RSX=/-[bcdfghjklmnpqrstvwxz0-9]{5,10}-[bcdfghjklmnpqrstvwxz0-9]{5}$/,CRONX=/-\d{8,}-[bcdfghjklmnpqrstvwxz0-9]{5}$/,ORDX=/-\d+$/,SUFX=/-[bcdfghjklmnpqrstvwxz0-9]{5}$/;
+function ownerOf(p){
+  const o=(p.labels||{})._owner;if(o){const i=o.indexOf('/');return {kind:o.slice(0,i),name:o.slice(i+1),sure:true}}
+  const n=p.name;
+  if(p.node&&n.endsWith('-'+p.node))return {kind:'Pod',name:n.slice(0,-(p.node.length+1))};
+  if(CRONX.test(n))return {kind:'CronJob',name:n.replace(CRONX,'')};
+  if(RSX.test(n))return {kind:'Deployment',name:n.replace(RSX,'')};
+  if(ORDX.test(n))return {kind:'StatefulSet',name:n.replace(ORDX,'')};
+  if(SUFX.test(n))return {kind:'DaemonSet/Job',name:n.replace(SUFX,'')};
+  return {kind:'Pod',name:n};
+}
+const KD={Deployment:'deploy',StatefulSet:'sts',DaemonSet:'ds',Job:'job',CronJob:'cron',Pod:'pod','DaemonSet/Job':'ds·job',ReplicaSet:'rs',ReplicationController:'rc'};
+function podMatches(c,n,p,wl){
+  if(S.ns&&n.name!==S.ns)return false;
+  if(S.liveOnly&&!p.live)return false;
+  if(S.kinds.size&&!wl.kind.split('/').some(k=>S.kinds.has(k)))return false;
+  const f=S.find;if(!f)return true;
+  return p.name.includes(f)||n.name.includes(f)||c.name.includes(f)||wl.name.toLowerCase().includes(f)||wl.kind.toLowerCase().includes(f)||Object.entries(p.labels||{}).some(([k,v])=>(k+'='+v).toLowerCase().includes(f));
+}
+function nsOptions(){
+  const sel=$('nsfilter'),names=[...new Set(S.tree.flatMap(c=>c.namespaces.map(n=>n.name)))].sort();
+  if(S.ns&&!names.includes(S.ns))S.ns='';
+  sel.innerHTML='<option value="">all namespaces</option>'+names.map(n=>`<option value="${esc(n)}"${n===S.ns?' selected':''}>${esc(n)}</option>`).join('');
+}
+function allKeys(){const ks=[];for(const c of S.tree)for(const n of c.namespaces){const nk=c.name+'/'+n.name;ks.push(nk);const seen=new Set();for(const p of n.pods){const wl=ownerOf(p),k=wl.kind+'/'+wl.name;if(!seen.has(k)){seen.add(k);ks.push(nk+'/'+k)}}}return ks}
+
 function buildTree(){
-  const f=$('find').value.trim().toLowerCase();const t=$('tree');t.innerHTML='';
-  const now=Date.now()*1e6;
+  const t=$('tree');const now=Date.now()*1e6;const frag=document.createDocumentFragment();
+  const tw=open=>`<span class="tw">${open?'▾':'▸'}</span>`;
+  const toggle=key=>{S.collapsed.has(key)?S.collapsed.delete(key):S.collapsed.add(key);buildTree()};
   for(const c of S.tree){
-    const cwrap=document.createElement('div');if(S.collapsed.has(c.name))cwrap.className='collapsed';
-    const cn=document.createElement('div');cn.className='node cluster';
-    cn.innerHTML=`<span class="tw">${S.collapsed.has(c.name)?'▸':'▾'}</span><span class="nm">${esc(c.name)}${c.hub?` <span class="cnt" title="served by peer hub ${esc(c.hub)}">via ${esc(c.hub)}</span>`:''}</span><span class="cnt">${c.namespaces.reduce((a,n)=>a+n.pods.length,0)} pods</span>`;
-    cn.onclick=()=>{S.collapsed.has(c.name)?S.collapsed.delete(c.name):S.collapsed.add(c.name);buildTree()};
-    cwrap.appendChild(cn);const kids=document.createElement('div');kids.className='kids';cwrap.appendChild(kids);
+    const ckey=c.name;let cpods=0;const kids=document.createElement('div');kids.className='kids';
     for(const n of c.namespaces){
-      const pods=n.pods.filter(p=>!f||p.name.includes(f)||n.name.includes(f)||c.name.includes(f)||Object.entries(p.labels||{}).some(([k,v])=>(k+'='+v).toLowerCase().includes(f)));if(!pods.length)continue;
-      const nk=c.name+'/'+n.name;const nwrap=document.createElement('div');if(S.collapsed.has(nk))nwrap.className='collapsed';
-      const nn=document.createElement('div');nn.className='node ns';nn.innerHTML=`<span class="tw">${S.collapsed.has(nk)?'▸':'▾'}</span><span class="nm">${esc(n.name)}</span><span class="cnt">${pods.length}</span>`;
-      nn.onclick=()=>{S.collapsed.has(nk)?S.collapsed.delete(nk):S.collapsed.add(nk);buildTree()};
+      const groups=new Map();
+      for(const p of n.pods){const wl=ownerOf(p);if(!podMatches(c,n,p,wl))continue;const k=wl.kind+'/'+wl.name;if(!groups.has(k))groups.set(k,{wl,pods:[]});groups.get(k).pods.push(p)}
+      if(!groups.size)continue;
+      const npods=[...groups.values()].reduce((a,g)=>a+g.pods.length,0);cpods+=npods;
+      const nk=ckey+'/'+n.name;const nwrap=document.createElement('div');if(S.collapsed.has(nk))nwrap.className='collapsed';
+      const nn=document.createElement('div');nn.className='node ns';nn.innerHTML=`${tw(!S.collapsed.has(nk))}<span class="nm">${esc(n.name)}</span><span class="cnt">${npods}</span>`;nn.onclick=()=>toggle(nk);
       nwrap.appendChild(nn);const nkids=document.createElement('div');nkids.className='kids';nwrap.appendChild(nkids);
-      for(const p of pods){
-        const idle=p.live&&(now-p.last_ts)>10*60*1e9;
-        const pn=document.createElement('div');pn.className='node pod'+(p.live?(idle?' idle':''):' gone');
-        const lbl=Object.entries(p.labels||{}).map(([k,v])=>k+'='+v).join('\n');
-        pn.innerHTML=`<span class="st" title="${p.live?(idle?'no lines for 10 min':'live'):'gone (logs kept until retention)'}"></span><span class="nm" title="${esc(p.name)} on ${esc(p.node||'?')}${lbl?'\n'+esc(lbl):''}">${esc(p.name)}</span>${p.restarts?`<span class="rs" title="restarts">↻${p.restarts}</span>`:''}${lbl?`<span class="cnt" title="${esc(lbl)}">⌂</span>`:''}`;
-        pn.onclick=()=>{ // select all containers of the pod
-          const ids=p.containers.map(x=>x.id);const all=ids.every(id=>S.sel.has(id));
-          ids.forEach(id=>all?S.sel.delete(id):S.sel.add(id));reload();buildTree()};
-        nkids.appendChild(pn);
-        for(const ct of p.containers){
-          const s=S.streams[ct.id];
-          const el=document.createElement('label');el.className='node ctr'+(S.sel.has(ct.id)?' sel':'');el.style.setProperty('--pc',s.color);
-          el.innerHTML=`<input type="checkbox" ${S.sel.has(ct.id)?'checked':''} aria-label="tail ${esc(s.key)}"><span class="sw"></span><span class="nm">${esc(ct.name)}</span>`;
-          el.querySelector('input').addEventListener('change',e=>{e.target.checked?S.sel.add(ct.id):S.sel.delete(ct.id);reload();buildTree()});
-          el.querySelector('.nm').addEventListener('click',e=>{e.preventDefault();S.sel=new Set([ct.id]);reload();buildTree()});
-          nkids.appendChild(el);
+      for(const [gk,g] of [...groups.entries()].sort((a,b)=>a[1].wl.name.localeCompare(b[1].wl.name))){
+        const wk=nk+'/'+gk;
+        const pods=g.pods.slice().sort((a,b)=>(b.live-a.live)||a.name.localeCompare(b.name));
+        const ids=pods.flatMap(p=>p.containers.map(x=>x.id)),selN=ids.filter(id=>S.sel.has(id)).length;
+        const live=pods.filter(p=>p.live).length,rs=pods.reduce((a,p)=>a+(p.restarts||0),0);
+        if(pods.length>5&&!S.autoCollapsed.has(wk)){S.autoCollapsed.add(wk);S.collapsed.add(wk)} // many pods (cron runs…): start folded
+        const wwrap=document.createElement('div');if(S.collapsed.has(wk))wwrap.className='collapsed';
+        const wn=document.createElement('div');wn.className='node wl'+(selN?' part':'')+(live?'':' gone');
+        wn.innerHTML=`${tw(!S.collapsed.has(wk))}<span class="st"></span><span class="nm" title="${esc(g.wl.kind)} ${esc(g.wl.name)} · ${pods.length} pod${pods.length>1?'s':''}${live<pods.length?` (${pods.length-live} gone)`:''}${g.wl.sure?'':'\n(kind guessed from the pod name; enable agent.enrich for the real owner)'}">${esc(g.wl.name)}</span><span class="kd">${KD[g.wl.kind]||esc(g.wl.kind.toLowerCase())}</span>${rs?`<span class="rs" title="restarts">↻${rs}</span>`:''}<span class="cnt" title="${selN?selN+' of '+ids.length+' containers selected':'click: tail every container of this workload'}">${selN?selN+'/':''}${pods.length}</span>`;
+        wn.querySelector('.tw').onclick=e=>{e.stopPropagation();toggle(wk)};
+        wn.onclick=()=>{const all=ids.every(id=>S.sel.has(id));ids.forEach(id=>all?S.sel.delete(id):S.sel.add(id));reload();buildTree()};
+        wwrap.appendChild(wn);const wkids=document.createElement('div');wkids.className='kids';wwrap.appendChild(wkids);
+        for(const p of pods){
+          const idle=p.live&&(now-p.last_ts)>10*60*1e9;
+          const pn=document.createElement('div');pn.className='node pod'+(p.live?(idle?' idle':''):' gone');
+          const lbl=Object.entries(p.labels||{}).filter(([k])=>k!=='_owner').map(([k,v])=>k+'='+v).join('\n');
+          const short=p.name.startsWith(g.wl.name+'-')?p.name.slice(g.wl.name.length+1):p.name;
+          pn.innerHTML=`<span class="st" title="${p.live?(idle?'no lines for 10 min':'live'):'gone (logs kept until retention)'}"></span><span class="nm" title="${esc(p.name)} on ${esc(p.node||'?')}${lbl?'\n'+esc(lbl):''}">${esc(short)}</span>${p.restarts?`<span class="rs" title="restarts">↻${p.restarts}</span>`:''}${lbl?`<span class="cnt" title="${esc(lbl)}">⌂</span>`:''}`;
+          pn.onclick=()=>{const pid=p.containers.map(x=>x.id);const all=pid.every(id=>S.sel.has(id));pid.forEach(id=>all?S.sel.delete(id):S.sel.add(id));reload();buildTree()};
+          wkids.appendChild(pn);
+          for(const ct of p.containers){
+            const st=S.streams[ct.id];
+            const el=document.createElement('label');el.className='node ctr'+(S.sel.has(ct.id)?' sel':'');el.style.setProperty('--pc',st.color);
+            el.innerHTML=`<input type="checkbox" ${S.sel.has(ct.id)?'checked':''} aria-label="tail ${esc(st.key)}"><span class="sw"></span><span class="nm">${esc(ct.name)}</span>`;
+            el.querySelector('input').addEventListener('change',e=>{e.target.checked?S.sel.add(ct.id):S.sel.delete(ct.id);reload();buildTree()});
+            el.querySelector('.nm').addEventListener('click',e=>{e.preventDefault();S.sel=new Set([ct.id]);reload();buildTree()});
+            wkids.appendChild(el);
+          }
         }
+        nkids.appendChild(wwrap);
       }
       kids.appendChild(nwrap);
     }
-    t.appendChild(cwrap);
+    const cwrap=document.createElement('div');if(S.collapsed.has(ckey))cwrap.className='collapsed';
+    const cn=document.createElement('div');cn.className='node cluster';
+    cn.innerHTML=`${tw(!S.collapsed.has(ckey))}<span class="nm">${esc(c.name)}${c.hub?` <span class="cnt" title="served by peer hub ${esc(c.hub)}">via ${esc(c.hub)}</span>`:''}</span><span class="cnt">${cpods} pods</span>`;
+    cn.onclick=()=>toggle(ckey);
+    cwrap.appendChild(cn);cwrap.appendChild(kids);frag.appendChild(cwrap);
   }
+  t.replaceChildren(frag);
+  $('selcount').textContent=S.sel.size;$('clearsel').disabled=!S.sel.size;
 }
 
 // ---------- rendering ----------
@@ -282,28 +362,52 @@ function renderMsg(l,hl){
   return h;
 }
 function srcOf(l){const s=S.streams[l.sid];if(!s)return '#'+l.sid;const suf=s.pod.split('-').pop();return `${s.ns}/${s.pod.length>18?'…'+suf:s.pod}/${s.ctr}`}
+// Row HTML is cached on the line object; S.gen changes whenever a display option does.
 function rowHtml(l,multi,hl){
-  const s=S.streams[l.sid]||{color:'var(--fg-muted)',key:''};
-  if(l.sys)return `<div class="row ${l.restart?'restart':'sys'}" style="--pc:${s.color}"><span class="ts">${fmtTs(l.t)}</span><span class="src" title="${esc(s.key)}">${srcOf(l)}</span><span class="msg">— ${esc(l.m)} —</span></div>`;
-  const cls='row'+(l.e?' e':'')+level(l.m)+(multi?' multi':'');
-  return `<div class="${cls}" style="--pc:${s.color}"><span class="ts">${fmtTs(l.t)}</span><span class="src" title="${esc(s.key)}">${srcOf(l)}</span><span class="msg">${renderMsg(l,hl)}</span></div>`;
+  if(l._g===S.gen&&l._h!==undefined)return l._h;
+  const s=S.streams[l.sid]||{color:'var(--fg-muted)',key:''};let h;
+  if(l.sys)h=`<div class="row ${l.restart?'restart':'sys'}" style="--pc:${s.color}"><span class="ts">${fmtTs(l.t)}</span><span class="src" title="${esc(s.key)}">${srcOf(l)}</span><span class="msg">— ${esc(l.m)} —</span></div>`;
+  else{const cls='row'+(l.e?' e':'')+level(l.m)+(multi?' multi':'');
+    h=`<div class="${cls}" style="--pc:${s.color}"><span class="ts">${fmtTs(l.t)}</span><span class="src" title="${esc(s.key)}">${srcOf(l)}</span><span class="msg">${renderMsg(l,hl)}</span></div>`}
+  l._h=h;l._g=S.gen;return h;
 }
+function bump(){S.gen++;lastStart=-1;lastEnd=-1}
+function earlierPill(){const b=$('earlier');const mem=S.wrap?S.head:0;b.hidden=!(mem>0&&S.sel.size);if(mem>0)b.textContent=`↑ ${mem.toLocaleString()} earlier lines · scroll up`}
+// draw renders only what is visible: fixed-height virtual rows, or (wrap mode, variable
+// height) a window of the last WIN rows that grows upward on demand.
 function draw(force){
-  const v=$('view'),rows=$('rows'),n=S.view.length,multi=S.sel.size>1,hl=words(S.q);
-  if(S.wrap){$('spacer').style.height='auto';if(!force&&lastStart===0&&lastEnd===n)return;lastStart=0;lastEnd=n;rows.style.transform='';rows.style.position='relative';rows.innerHTML=S.view.map(l=>rowHtml(l,multi,hl)).join('');return}
+  const v=$('view'),rows=$('rows'),n=S.view.length,multi=S.sel.size>1,hl=S.hl;
+  if(S.wrap){
+    $('spacer').style.height='auto';rows.style.position='relative';rows.style.transform='';
+    const start=S.head;
+    if(!force&&start===lastStart&&n===lastEnd)return;
+    if(!force&&start===lastStart&&n>lastEnd){let h='';for(let i=lastEnd;i<n;i++)h+=rowHtml(S.view[i],multi,hl);rows.insertAdjacentHTML('beforeend',h);lastEnd=n}
+    else{let h='';for(let i=start;i<n;i++)h+=rowHtml(S.view[i],multi,hl);rows.innerHTML=h;lastStart=start;lastEnd=n}
+    earlierPill();return;
+  }
   $('spacer').style.height=(n*ROWH)+'px';rows.style.position='absolute';
   const start=Math.max(0,Math.floor(v.scrollTop/ROWH)-10),end=Math.min(n,Math.ceil((v.scrollTop+v.clientHeight)/ROWH)+10);
   if(!force&&start===lastStart&&end===lastEnd)return;lastStart=start;lastEnd=end;
   rows.style.transform=`translateY(${start*ROWH}px)`;
   let h='';for(let i=start;i<end;i++)h+=rowHtml(S.view[i],multi,hl);rows.innerHTML=h;
+  earlierPill();
 }
-// insert restart boundary markers where the restart count changes within a stream
-function withMarkers(lines){
-  const out=[];const lastR={};
-  for(const l of lines){const r=l.r||0;if(l.sid in lastR&&lastR[l.sid]!==r)out.push({sid:l.sid,t:l.t,sys:true,restart:true,m:`container restarted (restart ${lastR[l.sid]} → ${r})`});lastR[l.sid]=r;out.push(l)}
-  return out;
+// wrap mode: reveal WIN more rows from memory above the window, keeping the scroll position
+function showEarlier(){
+  if(!S.wrap||S.head===0)return false;
+  const v=$('view'),h0=v.scrollHeight,from=Math.max(0,S.head-WIN),multi=S.sel.size>1;
+  let h='';for(let i=from;i<S.head;i++)h+=rowHtml(S.view[i],multi,S.hl);
+  $('rows').insertAdjacentHTML('afterbegin',h);S.head=from;lastStart=from;v.scrollTop+=v.scrollHeight-h0;earlierPill();return true;
 }
-function rebuildView(){S.view=withMarkers(S.lines);lastStart=-1;draw(true);status()}
+// wrap mode, following at the bottom: drop rows above the window from the DOM
+function trimWrap(){
+  if(!S.wrap)return;const over=S.view.length-S.head-WIN*2;if(over<=0)return;
+  const rows=$('rows');for(let i=0;i<over&&rows.firstChild;i++)rows.removeChild(rows.firstChild);
+  S.head+=over;lastStart=S.head;earlierPill();
+}
+// view = lines + restart-boundary markers, built incrementally
+function pushView(l){const r=l.r||0;if(l.sid in S.lastR&&S.lastR[l.sid]!==r)S.view.push({sid:l.sid,t:l.t,sys:true,restart:true,m:`container restarted (restart ${S.lastR[l.sid]} → ${r})`});S.lastR[l.sid]=r;S.view.push(l)}
+function rebuildView(){S.view=[];S.lastR={};for(const l of S.lines)pushView(l);S.head=S.wrap?Math.max(0,S.view.length-WIN):0;bump();draw(true);status();requestAnimationFrame(bottomBtn)}
 function status(){
   $('st-lines').textContent=`${S.view.length.toLocaleString()} lines`;
   $('st-drop').textContent=S.dropped?`· server dropped ${S.dropped.toLocaleString()} lines (client cap)`:'';
@@ -311,19 +415,21 @@ function status(){
   $('st-rate').textContent=S.follow&&S.es?'· live':'';
 }
 function crumb(){const c=$('crumb');c.innerHTML=[...S.sel].map(id=>{const s=S.streams[id];if(!s)return '';return `<span><i class="pc" style="background:${s.color}"></i>${esc(s.key)}${s.live?'':' <span style="color:var(--fg-faint)">(gone)</span>'}</span>`}).join('')}
-function scrollBottom(){const v=$('view');v.scrollTop=v.scrollHeight}
+function atBottom(){const v=$('view');return v.scrollHeight-v.scrollTop-v.clientHeight<ROWH*2}
+function bottomBtn(){$('tobottom').hidden=!S.sel.size||!S.view.length||atBottom()}
+function scrollBottom(){const v=$('view');v.scrollTop=v.scrollHeight;S.pending=0;$('newpill').hidden=true;bottomBtn()}
 function params(extra){const p=new URLSearchParams();for(const id of S.sel)p.append('sid',id);if(S.q)p.set('q',S.q);for(const k in extra)p.set(k,extra[k]);return p}
 
 // ---------- load + live ----------
 let reloadSeq=0;
 async function reload(){
-  const seq=++reloadSeq;stopTail();S.lines=[];S.dropped=0;S.pending=0;$('newpill').hidden=true;$('st-err').textContent='';
+  const seq=++reloadSeq;stopTail();S.lines=[];S.dropped=0;S.pending=0;S.hl=words(S.q);$('newpill').hidden=true;$('st-err').textContent='';
   $('empty').hidden=S.sel.size>0;crumb();
   $('export').href='/api/v1/export?'+params({start:'-'+S.range,end:'now',format:'txt'});
-  if(!S.sel.size){rebuildView();return}
+  if(!S.sel.size){S.next=0;rebuildView();return}
   S.loading=true;
   try{
-    const d=await api('/api/v1/query?'+params({start:'-'+S.range,end:'now',limit:2000}));
+    const d=await api('/api/v1/query?'+params({start:'-'+S.range,end:'now',limit:PAGE}));
     if(seq!==reloadSeq)return;
     S.lines=d.lines.reverse();S.next=d.next;
     $('st-scan').textContent=`· ${d.chunks} chunk${d.chunks===1?'':'s'} · ${d.ms} ms${d.truncated?' · truncated':''}`;
@@ -332,12 +438,18 @@ async function reload(){
   }catch(e){$('st-err').textContent='query: '+e.message}
   S.loading=false;
 }
+// older lines: first from memory (wrap window), then one page from the hub
 async function loadOlder(){
+  if(showEarlier())return;
   if(S.loading||!S.next||!S.sel.size)return;S.loading=true;
-  const v=$('view'),h0=v.scrollHeight;
+  const v=$('view'),h0=v.scrollHeight,oldHead=S.head,oldLen=S.view.length;
   try{
-    const d=await api('/api/v1/query?'+params({start:'-'+S.range,end:S.next,limit:2000}));
-    if(d.lines.length){S.lines=d.lines.reverse().concat(S.lines);S.next=d.next;rebuildView();v.scrollTop+=v.scrollHeight-h0}else S.next=0;
+    const d=await api('/api/v1/query?'+params({start:'-'+S.range,end:S.next,limit:PAGE}));
+    if(d.lines.length){
+      S.lines=d.lines.reverse().concat(S.lines);S.next=d.next;rebuildView();
+      if(S.wrap){S.head=Math.min(S.view.length,oldHead+(S.view.length-oldLen));lastStart=-1;draw(true);showEarlier()}
+      else v.scrollTop+=v.scrollHeight-h0;
+    }else S.next=0;
   }catch(e){$('st-err').textContent='query: '+e.message}
   S.loading=false;
 }
@@ -351,11 +463,14 @@ function startTail(){
     if(d.dropped){S.dropped+=d.dropped;return}
     batch.push(d);
     if(!raf)raf=requestAnimationFrame(()=>{raf=0;
-      const v=$('view'),atBottom=v.scrollHeight-v.scrollTop-v.clientHeight<ROWH*2;
-      S.lines.push(...batch);const added=batch.length;batch=[];
-      if(S.lines.length>20000)S.lines.splice(0,S.lines.length-20000);
-      rebuildView();
-      if(atBottom){scrollBottom();S.pending=0;$('newpill').hidden=true}else{S.pending+=added;$('newpill').textContent=`↓ ${S.pending.toLocaleString()} new lines`;$('newpill').hidden=false}
+      const wasBottom=atBottom();
+      const added=batch.length;
+      for(const l of batch){S.lines.push(l);pushView(l)}batch=[];
+      if(S.lines.length>MAXBUF){ // keep memory bounded; what we drop is one scroll-up away on the hub
+        S.lines.splice(0,S.lines.length-(MAXBUF*0.8|0));S.next=S.lines[0].t-1;rebuildView();
+      }else draw(false);
+      status();
+      if(wasBottom){trimWrap();scrollBottom()}else{S.pending+=added;$('newpill').textContent=`↓ ${S.pending.toLocaleString()} new lines`;$('newpill').hidden=false;bottomBtn()}
     });
   };
   es.onerror=()=>{$('st-rate').textContent='· live: reconnecting…'};
@@ -389,24 +504,34 @@ async function loadStatus(){
 }
 
 // ---------- wiring ----------
-$('view').addEventListener('scroll',()=>{draw(false);if($('view').scrollTop<ROWH*5)loadOlder()});
+$('view').addEventListener('scroll',()=>{draw(false);bottomBtn();if($('view').scrollTop<ROWH*5)loadOlder()});
+$('tobottom').addEventListener('click',()=>scrollBottom());
+$('earlier').addEventListener('click',()=>{showEarlier()});
 new ResizeObserver(()=>draw(true)).observe($('view'));
 let qT=0;$('q').addEventListener('input',e=>{S.q=e.target.value;clearTimeout(qT);qT=setTimeout(reload,300)});
-$('find').addEventListener('input',buildTree);
+$('find').addEventListener('input',e=>{S.find=e.target.value.trim().toLowerCase();buildTree()});
 $('refresh').addEventListener('click',loadStreams);
+$('clearsel').addEventListener('click',()=>{S.sel.clear();reload();buildTree()});
+$('expand').addEventListener('click',()=>{S.collapsed.clear();buildTree()});
+$('collapse').addEventListener('click',()=>{allKeys().forEach(k=>S.collapsed.add(k));buildTree()});
+$('liveonly').addEventListener('click',e=>{S.liveOnly=!S.liveOnly;e.currentTarget.setAttribute('aria-pressed',S.liveOnly);buildTree()});
+$('nsfilter').addEventListener('change',e=>{S.ns=e.target.value;buildTree()});
+$('kinds').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;const k=b.dataset.k;
+  if(!k)S.kinds.clear();else S.kinds.has(k)?S.kinds.delete(k):S.kinds.add(k);
+  [...$('kinds').children].forEach(x=>x.setAttribute('aria-pressed',x.dataset.k?S.kinds.has(x.dataset.k):!S.kinds.size));buildTree()});
 $('range').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;S.range=b.dataset.r;[...$('range').children].forEach(x=>x.setAttribute('aria-pressed',x===b));reload()});
-$('tsmode').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;S.ts=b.dataset.t;[...$('tsmode').children].forEach(x=>x.setAttribute('aria-pressed',x===b));lastStart=-1;draw(true)});
+$('tsmode').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;S.ts=b.dataset.t;[...$('tsmode').children].forEach(x=>x.setAttribute('aria-pressed',x===b));bump();draw(true)});
 $('follow').addEventListener('click',e=>{S.follow=!S.follow;e.currentTarget.setAttribute('aria-pressed',S.follow);if(S.follow){scrollBottom();startTail()}else stopTail();status()});
-$('wrap').addEventListener('click',e=>{S.wrap=!S.wrap;e.currentTarget.setAttribute('aria-pressed',S.wrap);$('view').classList.toggle('wrap',S.wrap);lastStart=-1;draw(true)});
-$('json').addEventListener('click',e=>{S.json=!S.json;e.currentTarget.setAttribute('aria-pressed',S.json);lastStart=-1;draw(true)});
-$('newpill').addEventListener('click',()=>{scrollBottom();S.pending=0;$('newpill').hidden=true});
+$('wrap').addEventListener('click',e=>{S.wrap=!S.wrap;e.currentTarget.setAttribute('aria-pressed',S.wrap);$('view').classList.toggle('wrap',S.wrap);S.head=S.wrap?Math.max(0,S.view.length-WIN):0;bump();draw(true);if(S.follow)scrollBottom()});
+$('json').addEventListener('click',e=>{S.json=!S.json;e.currentTarget.setAttribute('aria-pressed',S.json);bump();draw(true)});
+$('newpill').addEventListener('click',()=>scrollBottom());
 function toast(msg){const t=document.createElement('div');t.className='toast';t.textContent=msg;document.body.appendChild(t);setTimeout(()=>t.remove(),2600)}
 $('link').addEventListener('click',()=>{const u=location.origin+'/?'+params({range:S.range,follow:S.follow})+'#logs';
   const done=()=>toast('Permalink copied');const fail=()=>toast(u);
   if(navigator.clipboard&&navigator.clipboard.writeText)navigator.clipboard.writeText(u).then(done,fail);else fail()});
 $('menu').addEventListener('click',()=>$('side').classList.toggle('open'));
-document.addEventListener('keydown',e=>{if(e.key==='/'&&document.activeElement.tagName!=='INPUT'){e.preventDefault();$('q').focus()}if(e.key==='Escape')$('side').classList.remove('open')});
-function showTab(t){const logs=t==='logs';$('tab-logs').setAttribute('aria-selected',logs);$('tab-agents').setAttribute('aria-selected',!logs);$('logs-page').style.display=logs?'contents':'none';$('agents-page').classList.toggle('on',!logs);$('side').style.display=logs?'':'none';if(logs){lastStart=-1;draw(true)}else loadStatus()}
+document.addEventListener('keydown',e=>{if(document.activeElement.tagName==='INPUT'||document.activeElement.tagName==='SELECT')return;if(e.key==='/'){e.preventDefault();$('q').focus()}if(e.key==='End'){e.preventDefault();scrollBottom()}if(e.key==='Escape')$('side').classList.remove('open')});
+function showTab(t){const logs=t==='logs';$('tab-logs').setAttribute('aria-selected',logs);$('tab-agents').setAttribute('aria-selected',!logs);$('logs-page').style.display=logs?'contents':'none';$('agents-page').classList.toggle('on',!logs);$('side').style.display=logs?'':'none';document.querySelector('.shell').classList.toggle('full',!logs);if(history.replaceState)history.replaceState(null,'',location.pathname+location.search+(logs?'#logs':'#agents'));if(logs){lastStart=-1;draw(true)}else loadStatus()}
 $('tab-logs').addEventListener('click',()=>showTab('logs'));$('tab-agents').addEventListener('click',()=>showTab('agents'));
 
 // ---------- boot ----------

@@ -8,13 +8,16 @@ stores and indexes them, and a fast built-in UI to browse, search, and tail pods
 any number of clusters. No metrics pipeline, no Prometheus, no Grafana, no Elasticsearch,
 no object store required.
 
-> Status: **v1.0.** Formats and the `/api/v1` API are frozen (see
+> Status: **v1.1.** Formats and the `/api/v1` API are frozen since 1.0 (see
 > [docs/FORMATS.md](docs/FORMATS.md)). Verified by unit tests, a local end-to-end run
 > (`make e2e`: ingest, filter, live tail, agent restart without loss or duplicates,
 > kubelet rotation, `kill -9` hub recovery with WAL replay, pod deletion, index
-> rebuild, per-cluster tokens, viewer roles, federation) and a kind cluster run
-> (`make e2e-kind`: chart install, real kubelet log files, label enrichment, Helm
-> upgrade with data retained). See [CHANGELOG.md](CHANGELOG.md).
+> rebuild, per-cluster tokens, viewer roles, federation, S3 offload), a single-node kind
+> run (`make e2e-kind`: chart install, real kubelet log files, label enrichment, Helm
+> upgrade with data retained) and a multi-cluster kind run (`make e2e-multi`: 3-node hub
+> cluster + spoke cluster pushing over the network, demo workloads, restart boundaries,
+> 20 KiB lines, multiline traces, rate limits, token scoping, hub outage with spool and
+> drain). Not yet run on a production cluster. See [CHANGELOG.md](CHANGELOG.md).
 
 ---
 
@@ -200,28 +203,28 @@ appear as `<peer>/<id>` and the tree shows which hub serves each cluster.
 
 All configuration is Helm values. The important ones:
 
-| Value                                        | Default                | Meaning                                                    |
-|----------------------------------------------|------------------------|------------------------------------------------------------|
-| `global.clusterName`                         | `default`              | Label stamped on every line. Unique per hub.               |
-| `agent.enabled` / `hub.enabled`              | `true` / `true`        | Topology switches. Spoke = `hub.enabled=false`.            |
-| `agent.hub.url`, `agent.hub.token`           | in-cluster / generated | Where agents push, and with what.                          |
-| `agent.collect.excludeNamespaces`            | `[]`                   | Skip namespaces at the source (zero cost).                 |
-| `agent.collect.excludeContainers`            | `[]`                   | e.g. `[istio-proxy]`.                                      |
-| `agent.enrich.enabled`, `.labels`, `.annotations` | `false` | Attach selected pod labels/annotations via one node-scoped watch; then `label=app:api` works as a selector. |
-| `agent.multiline.enabled`                    | `false`                | Join stack traces by start-pattern.                        |
-| `agent.buffer.maxBytes`                      | `256Mi`                | Disk spool per node while hub is down.                     |
-| `agent.rateLimit.linesPerSecondPerContainer` | `0`                    | Cap a log-spamming pod.                                    |
-| `hub.storage.persistence.size`               | `50Gi`                 | PVC size.                                                  |
-| `hub.storage.retention.maxAge`               | `168h`                 | Delete days older than this.                               |
-| `hub.storage.retention.maxDiskBytes`         | `0` = 90 % of PVC      | Delete oldest days when exceeded.                          |
-| `hub.storage.retention.overrides`            | `[]`                   | Per `<cluster>/<namespace>` glob, e.g. keep `prod/*` 30 d. |
-| `hub.storage.objectStore.*` | off | Copy sealed chunks to any S3-compatible bucket after `uploadAfter`; evict local copies first under disk pressure; cold reads are transparent. |
-| `hub.auth.ui.mode` | `basic` | `none`, `basic`, or `oidc`. |
-| `hub.auth.clusterTokens`, `hub.auth.roles` | `[]` | Ingest tokens bound to clusters; viewer roles bound to cluster/namespace globs. |
-| `hub.ingress.*` / `hub.httpRoute.*`          | off                    | Expose the hub.                                            |
-| `hub.federation.peers` | `[]` | Other hubs to query, tail and export through this one. |
-| `hub.limits.perCluster.bytesPerSecond`       | `0` = unlimited        | Throttle a noisy spoke cluster.                            |
-| `hub.metrics.enabled`                        | `false`                | Prometheus endpoint. Off on purpose.                       |
+| Value                                             | Default                | Meaning                                                                                                                                                                                                   |
+|---------------------------------------------------|------------------------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `global.clusterName`                              | `default`              | Label stamped on every line. Unique per hub.                                                                                                                                                              |
+| `agent.enabled` / `hub.enabled`                   | `true` / `true`        | Topology switches. Spoke = `hub.enabled=false`.                                                                                                                                                           |
+| `agent.hub.url`, `agent.hub.token`                | in-cluster / generated | Where agents push, and with what.                                                                                                                                                                         |
+| `agent.collect.excludeNamespaces`                 | `[]`                   | Skip namespaces at the source (zero cost).                                                                                                                                                                |
+| `agent.collect.excludeContainers`                 | `[]`                   | e.g. `[istio-proxy]`.                                                                                                                                                                                     |
+| `agent.enrich.enabled`, `.labels`, `.annotations` | `false`                | Attach selected pod labels/annotations via one node-scoped watch; then `label=app:api` works as a selector. Also adds `_owner` (`Deployment/api`, `CronJob/report`, …) so the UI groups pods by workload. |
+| `agent.multiline.enabled`                         | `false`                | Join stack traces by start-pattern.                                                                                                                                                                       |
+| `agent.buffer.maxBytes`                           | `256Mi`                | Disk spool per node while hub is down.                                                                                                                                                                    |
+| `agent.rateLimit.linesPerSecondPerContainer`      | `0`                    | Cap a log-spamming pod.                                                                                                                                                                                   |
+| `hub.storage.persistence.size`                    | `50Gi`                 | PVC size.                                                                                                                                                                                                 |
+| `hub.storage.retention.maxAge`                    | `168h`                 | Delete days older than this.                                                                                                                                                                              |
+| `hub.storage.retention.maxDiskBytes`              | `0` = 90 % of PVC      | Delete oldest days when exceeded.                                                                                                                                                                         |
+| `hub.storage.retention.overrides`                 | `[]`                   | Per `<cluster>/<namespace>` glob, e.g. keep `prod/*` 30 d.                                                                                                                                                |
+| `hub.storage.objectStore.*`                       | off                    | Copy sealed chunks to any S3-compatible bucket after `uploadAfter`; evict local copies first under disk pressure; cold reads are transparent.                                                             |
+| `hub.auth.ui.mode`                                | `basic`                | `none`, `basic`, or `oidc`.                                                                                                                                                                               |
+| `hub.auth.clusterTokens`, `hub.auth.roles`        | `[]`                   | Ingest tokens bound to clusters; viewer roles bound to cluster/namespace globs.                                                                                                                           |
+| `hub.ingress.*` / `hub.httpRoute.*`               | off                    | Expose the hub.                                                                                                                                                                                           |
+| `hub.federation.peers`                            | `[]`                   | Other hubs to query, tail and export through this one.                                                                                                                                                    |
+| `hub.limits.perCluster.bytesPerSecond`            | `0` = unlimited        | Throttle a noisy spoke cluster.                                                                                                                                                                           |
+| `hub.metrics.enabled`                             | `false`                | Prometheus endpoint. Off on purpose.                                                                                                                                                                      |
 
 See [charts/p10logs/values.yaml](charts/p10logs/values.yaml) for everything, with
 comments.
@@ -242,13 +245,19 @@ Agents re-read the token file on `401`, so rotating a token never needs a restar
 
 ## Using the UI
 
-- **Tree** on the left: clusters, namespaces, pods, containers. Pods that no longer
-  exist stay listed (greyed) until their logs age out. Restart counts are shown; a
-  restart boundary is drawn in the log view.
+- **Tree** on the left: cluster → namespace → workload → pod → container. Pods are grouped
+  under their Deployment / StatefulSet / DaemonSet / Job / CronJob (from the agent's
+  `_owner` label when `agent.enrich.enabled`, otherwise guessed from the pod name) with a
+  kind badge, pod count and restart total; clicking a workload tails all of its
+  containers. Pods that no longer exist stay listed (greyed) until their logs age out;
+  the **live** toggle hides them. Under the search box: unselect all, expand / collapse
+  all, a namespace selector and workload-kind chips. Search matches pod, workload, kind
+  and label text.
 - **Tail**: click a container, or select several pods to interleave them by timestamp
   with a colour per pod (globs such as `pod=api-*` are an API feature). Follow mode uses SSE; if a pod
   logs faster than the per-client cap the server drops and shows a `dropped N lines`
-  marker rather than freezing the tab.
+  marker rather than freezing the tab. Only visible rows are rendered; the tab keeps at
+  most 10 000 lines in memory and re-fetches older ones from the hub when you scroll up.
 - **Time range**: presets or absolute. Historic views page backwards from the newest
   line.
 - **Filter box**, same grammar as the API `q` parameter:
@@ -283,7 +292,7 @@ for API tokens).
 
 Selectors (`cluster`, `namespace`, `pod`, `container`) accept exact values or globs
 (`api-*`); `uid` pins one pod instance; `sid` selects stream ids from `/streams`;
-`label=key:value` (repeatable) matches enrichment labels. Timestamps are RFC 3339 or relative (`-15m`). Query
+`label=key:value` (repeatable) matches enrichment labels. Timestamps are RFC 3339, unix seconds/millis/nanos, `now`, or relative (`-15m`, `-6h`, `-7d`, `-2w`). Query
 responses report `chunks` read, `skipped_chunks` excluded by bloom filters,
 `scanned_bytes`, `ms`, `truncated`, and `next` for the older page.
 
@@ -378,15 +387,15 @@ p10logs is designed to be the cheapest thing that still persists logs. Measured 
 table and caveats in [bench/RESULTS.md](bench/RESULTS.md)); reference numbers are from
 independent 2026 benchmarks (links above).
 
-| | p10logs (measured) | Reference |
-|---|---|---|
-| Agent, per node | 31 MiB RSS / 0.3 % of a core at 2 000 lines/s; 44 MiB / 3.4 % at 10 000 lines/s | vlagent 28 MiB, Fluent Bit 78 MiB, Vector 154 MiB at 10 k lines/s |
-| Hub | 58 MiB / 2 % at 2 000 lines/s; 100 MiB / 7 % at 10 000 lines/s (ingest only, memtable budget 128 MiB max) | VictoriaLogs 0.6–2 GiB, Loki 1.5–7 GiB, Elastic / ClickHouse ≥ 4 GB |
-| Disk | raw ÷ 7.3–8.7 (zstd level 1, 256 KiB+ frames) | Loki 501 GiB vs VictoriaLogs 318 GiB for the same 500 GB week |
-| Idle on a Linux node (kind) | agent 18.5 MiB, hub 24 MiB | |
-| Images | agent 16 MB, hub 23 MB (distroless static) | |
-| API-server load | zero requests (one node-scoped watch if enrichment is on) | Dozzle / kubetail: one long-lived stream per container per viewer |
-| Extra components | none | metrics-server, Grafana, Prometheus, object store, ClickHouse, JVM |
+|                             | p10logs (measured)                                                                                        | Reference                                                           |
+|-----------------------------|-----------------------------------------------------------------------------------------------------------|---------------------------------------------------------------------|
+| Agent, per node             | 31 MiB RSS / 0.3 % of a core at 2 000 lines/s; 44 MiB / 3.4 % at 10 000 lines/s                           | vlagent 28 MiB, Fluent Bit 78 MiB, Vector 154 MiB at 10 k lines/s   |
+| Hub                         | 58 MiB / 2 % at 2 000 lines/s; 100 MiB / 7 % at 10 000 lines/s (ingest only, memtable budget 128 MiB max) | VictoriaLogs 0.6–2 GiB, Loki 1.5–7 GiB, Elastic / ClickHouse ≥ 4 GB |
+| Disk                        | raw ÷ 7.3–8.7 (zstd level 1, 256 KiB+ frames)                                                             | Loki 501 GiB vs VictoriaLogs 318 GiB for the same 500 GB week       |
+| Idle on a Linux node (kind) | agent 18.5 MiB, hub 24 MiB                                                                                |                                                                     |
+| Images                      | agent 16 MB, hub 23 MB (distroless static)                                                                |                                                                     |
+| API-server load             | zero requests (one node-scoped watch if enrichment is on)                                                 | Dozzle / kubetail: one long-lived stream per container per viewer   |
+| Extra components            | none                                                                                                      | metrics-server, Grafana, Prometheus, object store, ClickHouse, JVM  |
 
 Why it stays small:
 
@@ -424,13 +433,14 @@ roughly 5–10× less for the "just pod logs" job.
 
 ## Roadmap
 
-| Version  | Scope                                                                                                                                                                                                                                                                                                                     |
-|----------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| Version         | Scope                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
+|-----------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | **v0.1** (done) | Agent (discover, CRI + docker-json parse, rotation + `.gz` backfill, checkpoint, batch, zstd push, disk spool, rate limit, multiline, heartbeat). Hub (ingest, cursor dedup, crash-safe chunks, SQLite index + `--rebuild-index`, query, SSE tail with per-client cap, retention by age/size/namespace, basic + OIDC auth, API tokens, per-cluster rate limit, agents status). UI (tree, multi-pod tail, restart markers, time range, filter, export, permalinks, agents page). Helm chart. |
-| **v0.2** (done) | Label/annotation enrichment (one node-scoped watch, no client-go) and `label=` selectors. Trigram bloom filter per chunk (`skipped_chunks` in query stats). `values.schema.json`. GitHub Actions: CI (unit, local e2e, chart, kind) and release (multi-arch images + OCI chart to ghcr.io/p10node). Benchmark script and numbers (`bench/`). |
-| **v0.3** (done) | Federation, object-storage offload, per-cluster ingest tokens, viewer roles, Artifact Hub metadata, WAL + memtable storage (replaces the compression-dictionary idea: large frames make it unnecessary). |
-| **v1.0** (done) | Format and API freeze (`docs/FORMATS.md`), `--check`, Helm upgrade test on kind, docs site, changelog. |
-| next | HA hub (two replicas behind the WAL on shared storage), Windows nodes, OpenTelemetry log export. |
+| **v0.2** (done) | Label/annotation enrichment (one node-scoped watch, no client-go) and `label=` selectors. Trigram bloom filter per chunk (`skipped_chunks` in query stats). `values.schema.json`. GitHub Actions: CI (unit, local e2e, chart, kind) and release (multi-arch images + OCI chart to ghcr.io/p10node). Benchmark script and numbers (`bench/`).                                                                                                                                                |
+| **v0.3** (done) | Federation, object-storage offload, per-cluster ingest tokens, viewer roles, Artifact Hub metadata, WAL + memtable storage (replaces the compression-dictionary idea: large frames make it unnecessary).                                                                                                                                                                                                                                                                                    |
+| **v1.0** (done) | Format and API freeze (`docs/FORMATS.md`), `--check`, Helm upgrade test on kind, docs site, changelog.                                                                                                                                                                                                                                                                                                                                                                                      |
+| **v1.1** (done) | Multi-node + multi-cluster kind environment (`make e2e-multi`) with demo workloads (`hack/demo/`), hub outage / spool / drain test, multiline timeout and size-flush fixes, `hub.service.nodePort`, `make images-tar`.                                                                                                                                                                                                                                                                      |
+| next            | First production cluster (feedback round), HA hub (two replicas behind the WAL on shared storage), Windows nodes, OpenTelemetry log export.                                                                                                                                                                                                                                                                                                                                                 |
 
 Non-goals stay non-goals: no metrics, no traces, no query language, no alerting.
 
@@ -456,7 +466,10 @@ the local e2e, chart lint and the kind e2e on every PR.
 make build           # bin/p10logs-agent, bin/p10logs-hub
 make test            # unit tests (CRI parser, tailer rotation, chunk recovery, store, query grammar)
 make e2e             # real agent + hub over a fake /var/log/pods tree, 11 scenarios (12 with Docker: S3 offload)
-make e2e-kind        # same on a kind cluster with the chart and locally built images
+make e2e-kind        # same on a single-node kind cluster with the chart and locally built images
+make e2e-multi       # 3-node hub cluster + spoke cluster + demo apps on kind; prints UI URL and password
+make demo            # apply hack/demo/ (JSON, crash loops, stack traces, 20 KiB lines, CronJob…) to the current context
+make images-tar      # dist/p10logs-images-<ver>.tar for nodes without registry access
 make run-hub         # hub on :8080, UI auth none, ingest token "dev", data in ./data
 make run-agent       # agent tailing ./hack/fakepods into that hub
 make lint template   # helm

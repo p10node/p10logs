@@ -8,7 +8,7 @@ ROOT=$(mktemp -d /tmp/p10logs-bench.XXXX); PORT=$((30000 + RANDOM % 10000))
 cleanup(){ kill ${HUB:-} ${AG:-} 2>/dev/null || true; rm -rf "$ROOT"; }
 trap cleanup EXIT
 mkdir -p "$ROOT/pods" "$ROOT/hub" "$ROOT/agent"
-printf 'listen: ":%s"\ndataDir: %s/hub\nauth: { ingestToken: b, ui: { mode: none } }\n' $PORT "$ROOT" > "$ROOT/hub.yaml"
+printf 'listen: "127.0.0.1:%s"\ndataDir: %s/hub\nauth: { ingestToken: b, ui: { mode: none } }\n' $PORT "$ROOT" > "$ROOT/hub.yaml"
 printf 'cluster: bench\nhub: { url: "http://127.0.0.1:%s", token: b }\npaths: { pods: %s/pods, state: %s/agent }\nhealth: ":0"\n' $PORT "$ROOT" "$ROOT" > "$ROOT/agent.yaml"
 ./bin/p10logs-hub --config "$ROOT/hub.yaml" 2>/dev/null & HUB=$!
 sleep 0.5

@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"os"
 	"path/filepath"
+	"strconv"
 	"sync"
 	"time"
 )
@@ -25,8 +26,23 @@ type Positions struct {
 	dirty bool
 }
 
-// Key builds the map key from a path and its inode.
+// Key builds the legacy map key from a path and its inode (kept for migration and as the
+// prefix of FileKey).
 func Key(path string, inode uint64) string { return path + "@" + itoa(inode) }
+
+// FileKey identifies one file's *content*: path, inode and a hash of its first line.
+// Inode alone is not an identity over time: kubelet deletes a rotated file after gzipping
+// it and the kernel hands the freed inode to the next 0.log, which would then inherit the
+// old file's checkpoint and the hub's cursor (every new line judged a duplicate). The first
+// CRI line carries a runtime timestamp, so it is unique per file and changes on truncation.
+func FileKey(path string, inode uint64, firstLine []byte) string {
+	var h uint64 = 14695981039346656037
+	for _, b := range firstLine {
+		h ^= uint64(b)
+		h *= 1099511628211
+	}
+	return Key(path, inode) + "@" + strconv.FormatUint(h, 36)
+}
 
 func itoa(u uint64) string {
 	var b [20]byte

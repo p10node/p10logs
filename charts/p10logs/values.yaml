@@ -46,7 +46,9 @@ agent:
     self: false
 
   # Enrich lines with pod labels/annotations via a *single* shared pod informer.
-  # Off by default: costs one watch on the apiserver per node.
+  # Off by default: costs one watch on the apiserver per node. When on, every stream also
+  # gets a synthetic `_owner` label ("Deployment/api", "CronJob/report", ...) from the pod's
+  # ownerReferences, which the UI uses to group pods by workload (label=_owner:... selects).
   enrich:
     enabled: false
     labels: []                  # e.g. ["app", "app.kubernetes.io/name"]
@@ -75,7 +77,9 @@ agent:
   multiline:
     enabled: false
     # Lines NOT matching `startPattern` are appended to the previous line.
-    startPattern: '^(\d{4}-\d{2}-\d{2}|\{|\[|[A-Z]{3,5} )'
+    # Default matches ISO dates, JSON, "[...]", "LEVEL ", klog "I1004 ", logfmt "time=",
+    # and access logs starting with an IPv4 address. Anything else continues the previous line.
+    startPattern: '^(\d{4}-\d{2}-\d{2}|\{|\[|[A-Z]{3,5} |[IWEF]\d{4} |time=|\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3} )'
     maxLines: 200
     timeout: 2s
 
@@ -237,6 +241,7 @@ hub:
   service:
     type: ClusterIP
     port: 8080
+    nodePort: null            # fixed NodePort when type=NodePort (e.g. 30080 for kind/dev)
     annotations: {}
 
   ingress:

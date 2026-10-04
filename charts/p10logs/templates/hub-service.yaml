@@ -18,6 +18,9 @@ spec:
       port: {{ .Values.hub.service.port }}
       targetPort: http
       protocol: TCP
+      {{- if and (eq .Values.hub.service.type "NodePort") .Values.hub.service.nodePort }}
+      nodePort: {{ .Values.hub.service.nodePort }}
+      {{- end }}
   selector:
     {{- include "p10logs.hub.selectorLabels" . | nindent 4 }}
 ---

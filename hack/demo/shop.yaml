@@ -1,0 +1,277 @@
+# Demo workloads that exercise every log path p10logs cares about. busybox only, no
+# custom images. Apply to any cluster:  kubectl apply -f hack/demo/
+#
+#   api        JSON lines, 2 replicas, mixed levels, stderr on errors, a sidecar
+#   worker     timestamped text, crashes every ~45 s with a Go panic -> restart boundaries
+#   frontend   nginx-style access log (IP first)
+#   spammer    ~400 lines/s DEBUG burst -> agent.rateLimit drops + "dropped N lines" marker
+#   longline   one 20 KiB line every 10 s with seq=N -> CRI 16 KiB partial-line reassembly
+#   java       Spring-style logs with multi-line stack traces every 20 s -> agent.multiline
+#   report     CronJob every 2 min, short-lived pods -> "gone" pods whose logs are kept
+#   migrate    Job with an init container -> init-container logs
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: shop
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: api
+  namespace: shop
+  labels: { app: api, tier: backend }
+spec:
+  replicas: 2
+  selector: { matchLabels: { app: api } }
+  template:
+    metadata:
+      labels: { app: api, tier: backend, app.kubernetes.io/name: shop-api }
+    spec:
+      terminationGracePeriodSeconds: 2
+      containers:
+        - name: app
+          image: busybox:1.36
+          resources: { requests: { cpu: 5m, memory: 8Mi }, limits: { memory: 32Mi } }
+          command: ["sh", "-c"]
+          args:
+            - |
+              r(){ od -An -N2 -tu2 /dev/urandom | tr -d ' '; }
+              ts(){ date -u +%Y-%m-%dT%H:%M:%SZ; }
+              paths="/v1/orders /v1/orders/42 /v1/cart /v1/checkout /v1/products /healthz"
+              echo "{\"ts\":\"$(ts)\",\"level\":\"info\",\"msg\":\"api listening\",\"addr\":\":8080\",\"pod\":\"$HOSTNAME\",\"version\":\"2.4.1\"}"
+              i=0
+              while true; do
+                i=$((i+1)); n=$(r)
+                set -- $paths; shift $((n % 6)); p=$1
+                ms=$(( (n % 400) + 5 )); u=$(( n % 50 )); st=200; lvl=info
+                if [ $((n % 23)) -eq 0 ]; then st=500; lvl=error; elif [ $((n % 9)) -eq 0 ]; then st=404; lvl=warn; fi
+                echo "{\"ts\":\"$(ts)\",\"level\":\"$lvl\",\"msg\":\"GET $p\",\"status\":$st,\"ms\":$ms,\"user\":$u,\"req\":$i,\"pod\":\"$HOSTNAME\"}"
+                if [ $lvl = error ]; then
+                  echo "{\"ts\":\"$(ts)\",\"level\":\"error\",\"msg\":\"upstream timeout\",\"upstream\":\"inventory.shop.svc:8080\",\"req\":$i,\"retry\":true}" >&2
+                fi
+                sleep 0.2
+              done
+        - name: cache
+          image: busybox:1.36
+          resources: { requests: { cpu: 2m, memory: 4Mi }, limits: { memory: 16Mi } }
+          command: ["sh", "-c"]
+          args:
+            - |
+              i=0; while true; do i=$((i+1)); echo "$(date -u +%Y-%m-%dT%H:%M:%SZ) INFO cache sidecar healthz ok hits=$((i*17)) misses=$((i*2)) size=$((i%500))MB"; sleep 5; done
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: worker
+  namespace: shop
+  labels: { app: worker, tier: backend }
+spec:
+  replicas: 1
+  selector: { matchLabels: { app: worker } }
+  template:
+    metadata:
+      labels: { app: worker, tier: backend }
+    spec:
+      terminationGracePeriodSeconds: 2
+      containers:
+        - name: worker
+          image: busybox:1.36
+          resources: { requests: { cpu: 5m, memory: 8Mi }, limits: { memory: 32Mi } }
+          command: ["sh", "-c"]
+          args:
+            - |
+              ts(){ date -u +%Y-%m-%dT%H:%M:%SZ; }
+              echo "$(ts) INFO worker starting pod=$HOSTNAME queue=default concurrency=4"
+              n=0
+              while [ $n -lt 45 ]; do
+                n=$((n+1)); echo "$(ts) INFO processing job $n queue=default attempt=1 took=$(( (n*37) % 900 ))ms"; sleep 1
+              done
+              echo "$(ts) ERROR job 46 failed: dial tcp 10.96.0.42:5432: connect: connection refused" >&2
+              echo "panic: runtime error: invalid memory address or nil pointer dereference" >&2
+              echo "[signal SIGSEGV: segmentation violation code=0x1 addr=0x0 pc=0x4a2f3b]" >&2
+              echo "" >&2
+              echo "goroutine 1 [running]:" >&2
+              echo "main.(*Worker).process(0xc0000a4000, 0x2e)" >&2
+              echo "	/src/worker.go:42 +0x1f3" >&2
+              echo "main.main()" >&2
+              echo "	/src/main.go:12 +0x9a" >&2
+              exit 2
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: frontend
+  namespace: shop
+  labels: { app: frontend, tier: web }
+spec:
+  replicas: 1
+  selector: { matchLabels: { app: frontend } }
+  template:
+    metadata:
+      labels: { app: frontend, tier: web }
+    spec:
+      terminationGracePeriodSeconds: 2
+      containers:
+        - name: nginx
+          image: busybox:1.36
+          resources: { requests: { cpu: 5m, memory: 8Mi }, limits: { memory: 32Mi } }
+          command: ["sh", "-c"]
+          args:
+            - |
+              r(){ od -An -N2 -tu2 /dev/urandom | tr -d ' '; }
+              ua='"Mozilla/5.0 (Macintosh; Intel Mac OS X 14_5) AppleWebKit/537.36 Chrome/128.0 Safari/537.36"'
+              while true; do
+                n=$(r); st=200; [ $((n % 17)) -eq 0 ] && st=404; [ $((n % 41)) -eq 0 ] && st=502
+                echo "10.244.$((n % 4)).$((n % 250 + 1)) - - [$(date -u '+%d/%b/%Y:%H:%M:%S +0000')] \"GET /static/app.$((n % 9)).js HTTP/1.1\" $st $((n % 9000 + 200)) \"https://shop.example.com/\" $ua 0.0$((n % 90))"
+                sleep 0.3
+              done
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: spammer
+  namespace: shop
+  labels: { app: spammer }
+spec:
+  replicas: 1
+  selector: { matchLabels: { app: spammer } }
+  template:
+    metadata:
+      labels: { app: spammer }
+    spec:
+      terminationGracePeriodSeconds: 2
+      containers:
+        - name: spammer
+          image: busybox:1.36
+          resources: { requests: { cpu: 20m, memory: 8Mi }, limits: { memory: 32Mi } }
+          command: ["sh", "-c"]
+          args:
+            - |
+              i=0
+              while true; do
+                t=$(date -u +%Y-%m-%dT%H:%M:%SZ); j=0
+                while [ $j -lt 20 ]; do i=$((i+1)); j=$((j+1)); echo "$t DEBUG spam burst line $i cache_hit=true shard=$((i % 8))"; done
+                sleep 0.05
+              done
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: longline
+  namespace: shop
+  labels: { app: longline }
+spec:
+  replicas: 1
+  selector: { matchLabels: { app: longline } }
+  template:
+    metadata:
+      labels: { app: longline }
+    spec:
+      terminationGracePeriodSeconds: 2
+      containers:
+        - name: longline
+          image: busybox:1.36
+          resources: { requests: { cpu: 2m, memory: 8Mi }, limits: { memory: 32Mi } }
+          command: ["sh", "-c"]
+          args:
+            - |
+              pad=$(head -c 20000 /dev/zero | tr '\0' 'x'); i=0
+              while true; do i=$((i+1)); echo "$(date -u +%Y-%m-%dT%H:%M:%SZ) INFO seq=$i payload_bytes=20000 $pad"; sleep 10; done
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: java
+  namespace: shop
+  labels: { app: java, tier: backend }
+spec:
+  replicas: 1
+  selector: { matchLabels: { app: java } }
+  template:
+    metadata:
+      labels: { app: java, tier: backend }
+    spec:
+      terminationGracePeriodSeconds: 2
+      containers:
+        - name: app
+          image: busybox:1.36
+          resources: { requests: { cpu: 5m, memory: 8Mi }, limits: { memory: 32Mi } }
+          command: ["sh", "-c"]
+          args:
+            - |
+              ts(){ date -u +%Y-%m-%dT%H:%M:%S.000Z; }
+              echo "$(ts) INFO  [main] c.e.shop.Application - Started Application in 4.213 seconds (JVM running for 4.9)"
+              i=0
+              while true; do
+                i=$((i+1))
+                echo "$(ts) INFO  [http-nio-8080-exec-$((i % 8 + 1))] c.e.shop.OrderService - processed order id=$((1000+i)) items=$((i % 5 + 1)) total=$((i * 7 % 500)).00"
+                if [ $((i % 20)) -eq 0 ]; then
+                  echo "$(ts) ERROR [http-nio-8080-exec-3] c.e.shop.OrderController - Failed to process order id=$((1000+i))" >&2
+                  echo "java.lang.IllegalStateException: inventory unavailable for sku=SKU-$((i % 97))" >&2
+                  echo "	at com.example.shop.OrderService.reserve(OrderService.java:88)" >&2
+                  echo "	at com.example.shop.OrderController.create(OrderController.java:42)" >&2
+                  echo "	at org.springframework.web.method.support.InvocableHandlerMethod.invoke(InvocableHandlerMethod.java:205)" >&2
+                  echo "	at java.base/java.lang.Thread.run(Thread.java:833)" >&2
+                  echo "Caused by: java.net.ConnectException: Connection refused" >&2
+                  echo "	at java.base/sun.nio.ch.Net.connect(Net.java:579)" >&2
+                  echo "	... 12 more" >&2
+                fi
+                sleep 0.5
+              done
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: report
+  namespace: shop
+spec:
+  schedule: "*/2 * * * *"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 1
+  failedJobsHistoryLimit: 1
+  jobTemplate:
+    spec:
+      ttlSecondsAfterFinished: 300
+      template:
+        metadata:
+          labels: { app: report }
+        spec:
+          restartPolicy: Never
+          containers:
+            - name: report
+              image: busybox:1.36
+              resources: { requests: { cpu: 5m, memory: 8Mi }, limits: { memory: 32Mi } }
+              command: ["sh", "-c"]
+              args:
+                - |
+                  ts(){ date -u +%Y-%m-%dT%H:%M:%SZ; }
+                  echo "$(ts) INFO report job started pod=$HOSTNAME"
+                  for i in $(seq 1 20); do echo "$(ts) INFO aggregated region=eu-$((i % 4)) orders=$((i * 13)) revenue=$((i * 1234)).50"; sleep 0.5; done
+                  echo "$(ts) INFO report job done rows=20"
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: migrate
+  namespace: shop
+spec:
+  ttlSecondsAfterFinished: 900
+  backoffLimit: 0
+  template:
+    metadata:
+      labels: { app: migrate }
+    spec:
+      restartPolicy: Never
+      initContainers:
+        - name: wait-db
+          image: busybox:1.36
+          command: ["sh", "-c"]
+          args:
+            - for i in 1 2 3 4 5; do echo "$(date -u +%Y-%m-%dT%H:%M:%SZ) INFO waiting for db attempt=$i"; sleep 1; done; echo "$(date -u +%Y-%m-%dT%H:%M:%SZ) INFO db ready"
+      containers:
+        - name: migrate
+          image: busybox:1.36
+          resources: { requests: { cpu: 5m, memory: 8Mi }, limits: { memory: 32Mi } }
+          command: ["sh", "-c"]
+          args:
+            - for i in $(seq 1 12); do echo "$(date -u +%Y-%m-%dT%H:%M:%SZ) INFO applied migration 2026_10_0$((i % 10))_$i.sql rows=$((i * 100))"; sleep 0.5; done; echo "$(date -u +%Y-%m-%dT%H:%M:%SZ) INFO migrations complete"

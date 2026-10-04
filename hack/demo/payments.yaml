@@ -1,0 +1,42 @@
+# Second namespace: a pod with two containers (app JSON + envoy-style access log).
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: payments
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: gateway
+  namespace: payments
+  labels: { app: gateway, tier: edge }
+spec:
+  replicas: 1
+  selector: { matchLabels: { app: gateway } }
+  template:
+    metadata:
+      labels: { app: gateway, tier: edge }
+    spec:
+      terminationGracePeriodSeconds: 2
+      containers:
+        - name: app
+          image: busybox:1.36
+          resources: { requests: { cpu: 5m, memory: 8Mi }, limits: { memory: 32Mi } }
+          command: ["sh", "-c"]
+          args:
+            - |
+              r(){ od -An -N2 -tu2 /dev/urandom | tr -d ' '; }
+              i=0
+              while true; do
+                i=$((i+1)); n=$(r); st=201; lvl=info; [ $((n % 13)) -eq 0 ] && st=402 && lvl=warn
+                echo "{\"ts\":\"$(date -u +%Y-%m-%dT%H:%M:%SZ)\",\"level\":\"$lvl\",\"msg\":\"charge\",\"amount\":$((n % 20000 + 100)),\"currency\":\"USD\",\"status\":$st,\"card\":\"**** $((n % 9000 + 1000))\",\"txn\":\"txn_$i\"}"
+                sleep 0.5
+              done
+        - name: envoy
+          image: busybox:1.36
+          resources: { requests: { cpu: 2m, memory: 4Mi }, limits: { memory: 16Mi } }
+          command: ["sh", "-c"]
+          args:
+            - |
+              r(){ od -An -N2 -tu2 /dev/urandom | tr -d ' '; }
+              while true; do n=$(r); echo "[$(date -u +%Y-%m-%dT%H:%M:%S.000Z)] \"POST /v1/charge HTTP/2\" 201 - 318 94 $((n % 120)) $((n % 110)) \"10.244.2.$((n % 250 + 1))\" \"stripe-cli/1.19\" \"$(printf '%08x' $n)\" \"payments.shop.svc\" \"10.244.1.$((n % 250 + 1)):8080\""; sleep 0.5; done

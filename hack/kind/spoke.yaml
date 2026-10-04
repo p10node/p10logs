@@ -1,0 +1,7 @@
+# kind cluster acting as a spoke: agents only, pushes to the hub cluster over the
+# docker "kind" network (egress only, bearer token bound to cluster "spoke").
+kind: Cluster
+apiVersion: kind.x-k8s.io/v1alpha4
+name: p10logs-spoke
+nodes:
+  - role: control-plane

@@ -39,6 +39,7 @@ type BatcherConfig struct {
 	Multiline     bool
 	StartPattern  string
 	MultiMaxLines int
+	MultiTimeout  time.Duration // flush a multiline group this long after its last line (default 2s)
 	MaxLineBytes  int
 }
 
@@ -58,6 +59,7 @@ type section struct {
 	pend    *entry
 	pendN   int
 	pendEnd int64
+	pendAt  time.Time // when the last line joined the group
 	// rate limit
 	tokens  float64
 	last    time.Time
@@ -95,6 +97,9 @@ func NewBatcher(cfg BatcherConfig, inflight int) *Batcher {
 	if cfg.MaxLineBytes == 0 {
 		cfg.MaxLineBytes = 256 << 10
 	}
+	if cfg.MultiTimeout <= 0 {
+		cfg.MultiTimeout = 2 * time.Second
+	}
 	if inflight <= 0 {
 		inflight = 4
 	}
@@ -116,11 +121,11 @@ func (b *Batcher) Run(ctx context.Context) {
 	for {
 		select {
 		case <-ctx.Done():
-			b.flush(true)
+			b.flush(true, true)
 			close(b.out)
 			return
 		case <-t.C:
-			b.flush(true)
+			b.flush(true, false)
 		}
 	}
 }
@@ -165,23 +170,24 @@ func (b *Batcher) Record(r tail.Record) {
 			s.pend.msg = append(append(s.pend.msg, '\n'), e.msg...)
 			s.pendN++
 			s.pendEnd = r.EndOff
+			s.pendAt = time.Now()
 			b.mu.Unlock()
 			return
 		}
-		if s.pend != nil {
+		if s.pend != nil { // a new start line closes the previous group
 			b.add(s, *s.pend, s.pendEnd)
 		}
 		s.pend = &e
 		s.pendN = 1
 		s.pendEnd = r.EndOff
-		b.mu.Unlock()
-		return
+		s.pendAt = time.Now()
+	} else {
+		b.add(s, e, r.EndOff)
 	}
-	b.add(s, e, r.EndOff)
 	full := b.bytes >= b.cfg.MaxBytes || b.lines >= b.cfg.MaxLines
 	b.mu.Unlock()
-	if full {
-		b.flush(false)
+	if full { // size-triggered: multiline groups stay pending
+		b.flush(false, false)
 	}
 }
 
@@ -205,14 +211,16 @@ func (b *Batcher) StreamEnd(meta cri.Meta, key string) {
 	b.mu.Unlock()
 }
 
-// flush encodes pending sections into one batch. withPending also flushes
-// multiline groups (interval flush); a size-triggered flush keeps them.
-func (b *Batcher) flush(withPending bool) {
+// flush encodes pending sections into one batch. withPending (the interval flush) also
+// emits multiline groups that have not grown for MultiTimeout; final emits all of them
+// (shutdown). A size-triggered flush keeps every group pending.
+func (b *Batcher) flush(withPending, final bool) {
 	b.mu.Lock()
 	if withPending {
+		now := time.Now()
 		for _, k := range b.order {
 			s := b.secs[k]
-			if s.pend != nil {
+			if s.pend != nil && (final || s.ended || now.Sub(s.pendAt) >= b.cfg.MultiTimeout) {
 				b.add(s, *s.pend, s.pendEnd)
 				s.pend = nil
 			}
@@ -252,7 +260,7 @@ func (b *Batcher) flush(withPending bool) {
 		bt.Acks = append(bt.Acks, Ack{Key: s.file, EndOff: s.end})
 		if s.pend != nil && !s.ended {
 			// carry the multiline group over; the next section starts after what we sent
-			ns := &section{meta: s.meta, file: s.file, start: s.end, pend: s.pend, pendN: s.pendN, pendEnd: s.pendEnd, tokens: s.tokens, last: s.last}
+			ns := &section{meta: s.meta, file: s.file, start: s.end, pend: s.pend, pendN: s.pendN, pendEnd: s.pendEnd, pendAt: s.pendAt, tokens: s.tokens, last: s.last}
 			next[k] = ns
 			order = append(order, k)
 		}

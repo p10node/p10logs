@@ -136,6 +136,46 @@ Any hub can be both a push target for some clusters and a federation peer for ot
 Cluster identity is always the `cluster` label stamped by the agent, so the UI tree is
 identical regardless of topology.
 
+## E. Try hub + spoke on a laptop (kind)
+
+`make e2e-multi` reproduces topology B with docker only:
+
+```
+  kind "p10logs-hub"  (control-plane + 2 workers)        kind "p10logs-spoke" (1 node)
+  ┌──────────────────────────────────────────┐           ┌───────────────────────────┐
+  │ hub (StatefulSet, PVC) ← NodePort 30080  │ ◄──────── │ agent DaemonSet           │
+  │ agents on all 3 nodes                    │  docker   │ token bound to "spoke"    │
+  │ demo apps (hack/demo/)                   │  network  │ multiline on, demo apps   │
+  └──────────────────────────────────────────┘           └───────────────────────────┘
+          ▲ http://localhost:30080  (admin / printed password)
+```
+
+It builds the images, creates both clusters (`hack/kind/*.yaml`), installs the chart
+twice (hub values: `hub.service.type=NodePort`, `hub.service.nodePort=30080`,
+`hub.auth.clusterTokens`; spoke values: `hub.enabled=false`,
+`agent.hub.url=http://<hub-control-plane-ip>:30080`, `agent.hub.token`), applies the demo
+workloads to both, runs the checks listed in `hack/e2e-multi.sh`, and leaves everything
+running. `make kind-down` deletes both clusters. The same values, with an Ingress and
+TLS instead of a NodePort, are what a real hub + spoke deployment uses.
+
+## F. A multi-node cluster on one Incus host
+
+`hack/incus-k3s.sh` creates N Incus virtual machines on a host and joins them into one
+k3s cluster (node 1 = server). Copy it to the host and run it there (do not pipe it
+through `bash -s`: `incus` reads YAML from stdin):
+
+```bash
+scp hack/incus-k3s.sh host:/tmp/ && ssh host 'PREFIX=p10-k8s COUNT=3 CPU=4 MEM=8GiB DISK=30GiB STORAGE=fast /tmp/incus-k3s.sh' > p10-k8s.kubeconfig
+make images-tar ARCH=amd64                      # dist/p10logs-images-<ver>-amd64.tar
+for n in 1 2 3; do ssh host "incus exec p10-k8s-$n -- k3s ctr images import -" < dist/p10logs-images-*-amd64.tar; done
+KUBECONFIG=p10-k8s.kubeconfig helm install p10logs charts/p10logs -n p10logs --create-namespace \
+  --set global.clusterName=p10-k8s --set hub.service.type=NodePort --set hub.service.nodePort=30080 \
+  --set agent.enrich.enabled=true --set 'agent.enrich.labels={app}'
+```
+
+The VMs take the host's default profile (bridged NIC + DHCP in the example above), so
+the hub is reachable on the LAN at `http://<node-1-ip>:30080`.
+
 ## Naming rules
 
 - `global.clusterName` must be unique per hub. Collisions merge streams from two

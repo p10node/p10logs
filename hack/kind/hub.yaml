@@ -1,0 +1,15 @@
+# kind cluster for the central hub: 1 control-plane (tainted) + 2 workers.
+# The hub Service is a NodePort (30080) mapped to the host, so the UI is reachable at
+# http://localhost:30080 without port-forward, and spoke clusters on the same docker
+# network reach it at http://<control-plane-ip>:30080.
+kind: Cluster
+apiVersion: kind.x-k8s.io/v1alpha4
+name: p10logs-hub
+nodes:
+  - role: control-plane
+    extraPortMappings:
+      - containerPort: 30080
+        hostPort: 30080
+        protocol: TCP
+  - role: worker
+  - role: worker

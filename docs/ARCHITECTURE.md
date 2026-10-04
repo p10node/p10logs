@@ -44,7 +44,7 @@ Single static Go binary, ~15 MB image (distroless/static), runs as a DaemonSet.
 
 ### 2.2 Tailing
 
-Per file identity `(path, inode)`, one tailer goroutine:
+Per file identity `(path, inode, first line)`, one tailer goroutine:
 
 - Open, seek to checkpointed offset (or 0 if new; **never** "end" because we want the
   backlog of a container that was already running before the agent started).
@@ -64,8 +64,9 @@ Per file identity `(path, inode)`, one tailer goroutine:
   kubelet renames it to `0.log.<YYYYMMDD-HHMMSS>` and asks the runtime to reopen the
   same path → **same path, new inode**. Older rotated files are gzipped on a later
   pass and only `containerLogMaxFiles - 2` of them are kept (default 5 → 3). The tailer
-  therefore keys its state by `(path, inode)`, keeps draining the old inode to EOF, then
-  switches to the new one. Truncation (size < offset) → reset to 0.
+  therefore keys its state by `(path, inode, first line)`, keeps draining the old inode
+  to EOF, then switches to the new one. Truncation (size < offset) ends the tailer and the
+  discoverer starts a new one keyed by the new first line, so the hub sees a new file.
 - Backfill: when a container directory is seen for the **first time** (fresh install,
   or a node the agent never ran on), kubelet has usually already gzipped the rotated
   files, so the agent also reads `<n>.log.<ts>.gz` (gzip stream, oldest first, low
@@ -86,7 +87,12 @@ once per second when dirty, so a crash leaves either the old or the new file, ne
 torn one.
 
 ```
-key   = "<path>@<inode>"           (gz backfill files: the file name, no inode)
+key   = "<path>@<inode>@<fnv64 of the first line>"   (gz backfill files: the file name)
+        # the first-line hash matters: kubelet deletes a rotated file once it is gzipped and the
+        # kernel reuses the inode for the next 0.log; with "<path>@<inode>" alone the new file
+        # inherited the old checkpoint and the hub's cursor, and every new line was dropped as a
+        # duplicate until the file outgrew the old one (never, at 10 MiB rotation). A legacy
+        # "<path>@<inode>" entry is adopted once by the first agent that sees the new format.
 value = { offset, inode, done, seen }
 ```
 
@@ -121,7 +127,7 @@ X-P10-Agent: 0.1.0
 Content-Type: application/x-ndjson
 Content-Encoding: zstd
 
-{"k":"kube-system/coredns-7d8b/…uid…/coredns/0","f":"…uid…/coredns/0.log@inode","o":[10240,12288]}
+{"k":"kube-system/coredns-7d8b/…uid…/coredns/0","f":"…uid…/coredns/0.log@inode@firstlinehash","o":[10240,12288]}
 {"t":1727683200123456789,"s":"o","m":"[INFO] plugin/reload: Running configuration…"}
 {"t":1727683200123999000,"s":"e","m":"[ERROR] plugin/errors: 2 example.com. A: dial tcp…"}
 {"k":"…next stream…","f":"…","o":[0,4096]}
@@ -166,8 +172,12 @@ their last lines are still labelled. Selector: `label=key:value` on every read A
 ### 2.7 Multiline (optional)
 
 Per-container state machine: a line that does **not** match `multiline.startPattern`
-is appended to the previous line (`\n` joined) until `maxLines` or `timeout`. Applied
-after CRI partial reassembly.
+is appended to the previous line (`\n` joined). A group is emitted when the next start
+line arrives, when it reaches `maxLines`, when no line has joined it for `timeout`
+(checked at every batch interval), or when its file disappears. Size-triggered batch
+flushes leave the open group pending, so a trace is never split by batching. Applied
+after CRI partial reassembly. The default start pattern covers ISO timestamps, JSON,
+`[...]`, `LEVEL `, klog `I1004 `, logfmt `time=` and IPv4-first access logs.
 
 ### 2.8 Resource discipline
 
@@ -406,9 +416,10 @@ step), served from the hub binary, no external assets.
 |---|---|
 | Agent restarts | Resumes from the checkpointed offset; at most one batch is re-sent and the hub's cursor dedup drops it. |
 | Node reboots | Same as above; positions and the disk buffer live on a hostPath. |
-| Hub down | Agent spools to disk up to `buffer.maxBytes`, then drops oldest and reports the count. |
+| Hub down | Agent spools to disk up to `buffer.maxBytes`, then drops oldest and reports the count. A push has a bounded deadline (10 s + 1 s/MiB), so a hub pod that vanishes under an open keep-alive connection costs ~10 s, not the 60 s client timeout. |
 | Hub crashes mid-write | Acked pushes are in the fsynced WAL and are replayed on start; un-acked ones are re-sent by the agent. A torn frame at the end of an `.open` chunk is truncated at the first bad CRC. No loss, no duplicates (`kill -9` scenario in `make e2e`). |
 | PVC full | The disk cap (default 90 % of the PVC) exists to prevent it. If a write still fails the push gets `500`, the agent spools the batch, and ingest resumes once retention or an operator frees space. |
+| Kubelet rotates a file | The old inode is drained for `RotateWait` (5 s) after the path points elsewhere, whether the discoverer or the tailer's own inode check noticed first, because the runtime may still write to it until it reopens the path. A path that is briefly absent between rename and reopen does not end the stream; two consecutive misses ~1 s apart do. |
 | Kubelet rotates faster than agent reads | Loss is possible only if the agent lags more than `containerLogMaxFiles × containerLogMaxSize` (default 50 MiB per container). Rate limiting and `priorityClassName` keep the agent scheduled and fast. |
 | Clock skew between nodes | Timestamps are stamped by the runtime when it reads the pipe (not by the app), with the node's clock; the hub never rewrites them. Interleaved multi-pod views may show skew. |
 | Static pods | Their `uid` in the path is the config hash, not an API uid. Harmless: it is still unique per pod spec. |
@@ -446,7 +457,9 @@ VictoriaMetrics' 2026 collector benchmark at 10 k lines/s measured vlagent at
 | Bloom / filter | trigram bloom never false-negative; filter grammar | `internal/bloom`, `internal/query` |
 | S3 client | SigV4 client against an in-memory fake | `internal/s3` |
 | End to end (local) | real agent + hub over a fake `/var/log/pods`: ingest, filter, SSE tail, agent restart, rotation, `kill -9` hub, pod deletion, auth, cluster tokens, roles, rebuild, federation, S3 offload (needs Docker) | `hack/e2e-local.sh`, CI |
+| Batcher | multiline join, `multiline.timeout`, flush on stream end, size-triggered flush keeps the open group, rate-limit marker and checkpoint advance over dropped lines | `internal/ship` |
 | End to end (kind) | chart install, real kubelet files, enrichment, token consistency, `helm upgrade` keeps data | `hack/e2e-kind.sh`, CI |
+| End to end (multi-cluster kind) | 3-node hub cluster + spoke cluster over the docker network: DaemonSet on tainted control plane, cross-cluster queries, enrichment, restart boundaries, 20 KiB partial lines, multiline traces, rate-limit markers, per-cluster tokens, CronJob / Job / init-container logs, hub outage → spool → drain with no loss / no dup | `hack/e2e-multi.sh`, `hack/demo/`, CI |
 | Load | 2 k and 10 k lines/s, RSS / CPU / disk | `bench/run.sh` → `bench/RESULTS.md`, manual |
 
 ## 7. Repository layout
@@ -475,7 +488,7 @@ p10logs/
 │   └── hub/                 # hub config
 ├── ui/                      # single-file console, embedded with go:embed
 ├── charts/p10logs/          # Helm chart
-├── hack/                    # dev configs, e2e-local.sh, e2e-kind.sh
+├── hack/                    # dev configs, e2e-local.sh, e2e-kind.sh, e2e-multi.sh, kind/ configs, demo/ workloads
 └── docs/
 ```
 
