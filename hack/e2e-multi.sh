@@ -66,11 +66,26 @@ if [ $RERUN_HUB = 1 ]; then # same image tag was reloaded: restart to pick up th
   $KH -n p10logs rollout status sts/p10logs-hub --timeout=180s >/dev/null
 fi
 $KH -n p10logs rollout status ds/p10logs-agent --timeout=180s >/dev/null
-PW=$($KH -n p10logs get secret p10logs-ui -o jsonpath='{.data.password}' | base64 -d)
 URL="http://127.0.0.1:$PORT"
 for i in $(seq 1 60); do curl -fs "$URL/readyz" >/dev/null 2>&1 && break; sleep 1; done
 curl -fs "$URL/readyz" >/dev/null && pass "hub reachable on host $URL" || fail "hub not reachable on $URL"
 [ "$(curl -s -o /dev/null -w '%{http_code}' "$URL/api/v1/status")" = 401 ] && pass "UI auth enforced (401 without creds)" || fail "UI auth not enforced"
+# first-run onboarding: admin/admin must be replaced before anything is served
+PW=${E2E_UI_PASSWORD:-p10logs-e2e-pass-1}
+JAR=$(mktemp)
+code=$(curl -s -o /dev/null -w '%{http_code}' -c "$JAR" -d 'user=admin&password=admin' "$URL/auth/login")
+if [ "$code" = 302 ]; then
+  loc=$(curl -s -o /dev/null -w '%{redirect_url}' -c "$JAR" -d 'user=admin&password=admin' "$URL/auth/login")
+  echo "$loc" | grep -q '/auth/setup' && pass "default admin/admin is forced to /auth/setup" || fail "default login went to $loc"
+  [ "$(curl -s -o /dev/null -w '%{http_code}' -b "$JAR" "$URL/api/v1/status")" = 403 ] && pass "API refused until the password is changed" || fail "API served before setup"
+  [ "$(curl -s -o /dev/null -w '%{http_code}' -b "$JAR" -c "$JAR" -d "password=$PW&password2=$PW" "$URL/auth/setup")" = 302 ] && pass "new password set through onboarding" || fail "setup"
+  [ "$(curl -s -o /dev/null -w '%{http_code}' -b "$JAR" "$URL/api/v1/status")" = 200 ] && pass "session works after setup" || fail "session after setup"
+  [ "$(curl -s -o /dev/null -w '%{http_code}' -u admin:admin "$URL/api/v1/status")" = 401 ] && pass "admin/admin no longer accepted" || fail "default still accepted"
+else
+  pass "onboarding already done on an earlier run (login with admin/admin: $code)"
+fi
+rm -f "$JAR"
+[ "$(curl -s -o /dev/null -w '%{http_code}' -u "admin:$PW" "$URL/api/v1/status")" = 200 ] && pass "HTTP Basic with the new password works for scripts" || fail "basic header with new password"
 AG=$($KH -n p10logs get pods -l app.kubernetes.io/component=agent --no-headers | grep -c Running)
 [ "$AG" = 3 ] && pass "agent DaemonSet on all 3 nodes (incl. control plane)" || fail "agent pods running: $AG, want 3"
 

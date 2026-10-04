@@ -12,6 +12,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -102,6 +103,9 @@ type Config struct {
 	SessionKey     []byte
 	SessionTTL     time.Duration
 	PublicURL      string // optional; else derived from the request
+	// UsersFile holds local users for basic mode (passwords set through the UI). When no
+	// BasicPass is configured and the file is empty, admin/admin is seeded with must_change.
+	UsersFile string
 }
 
 // Auth holds compiled state.
@@ -109,6 +113,7 @@ type Auth struct {
 	cfg      Config
 	verifier *oidc.IDTokenVerifier
 	endpoint oauth2.Endpoint
+	users    *userStore
 }
 
 const cookieName = "p10s"
@@ -129,8 +134,20 @@ func New(ctx context.Context, cfg Config) (*Auth, error) {
 	switch cfg.Mode {
 	case "none":
 	case "basic":
-		if cfg.BasicUser == "" || cfg.BasicPass == "" {
-			return nil, errors.New("auth: basic mode needs username and password")
+		if cfg.UsersFile != "" {
+			us, err := openUsers(cfg.UsersFile)
+			if err != nil {
+				return nil, err
+			}
+			a.users = us
+			if cfg.BasicPass == "" && us.empty() {
+				if err := us.set(DefaultUser, DefaultPass, true); err != nil {
+					return nil, fmt.Errorf("auth: seed default user: %w", err)
+				}
+			}
+		}
+		if a.users == nil && (cfg.BasicUser == "" || cfg.BasicPass == "") {
+			return nil, errors.New("auth: basic mode needs a users file or username and password")
 		}
 	case "oidc":
 		if cfg.OIDCIssuer == "" || cfg.OIDCClientID == "" || cfg.OIDCSecret == "" {
@@ -242,16 +259,18 @@ func (a *Auth) User(r *http.Request) string {
 	case "none":
 		return "anonymous"
 	case "basic":
-		u, p, ok := r.BasicAuth()
-		if ok && subtle.ConstantTimeCompare([]byte(u), []byte(a.cfg.BasicUser)) == 1 && subtle.ConstantTimeCompare([]byte(p), []byte(a.cfg.BasicPass)) == 1 {
+		if u, mustChange := a.session(r); u != "" && !mustChange {
 			return u
+		}
+		if u, p, ok := r.BasicAuth(); ok {
+			if ok, mustChange := a.checkLocal(u, p); ok && !mustChange {
+				return u
+			}
 		}
 		return ""
 	case "oidc":
-		if c, err := r.Cookie(cookieName); err == nil {
-			if email, ok := a.verifySession(c.Value); ok {
-				return email
-			}
+		if email, _ := a.session(r); email != "" {
+			return email
 		}
 		return ""
 	}
@@ -267,8 +286,20 @@ func (a *Auth) RequireUI(next http.Handler) http.Handler {
 		}
 		switch a.cfg.Mode {
 		case "basic":
-			w.Header().Set("WWW-Authenticate", `Basic realm="p10logs"`)
-			http.Error(w, "unauthorized", http.StatusUnauthorized)
+			if u, mustChange := a.session(r); u != "" && mustChange {
+				if strings.HasPrefix(r.URL.Path, "/api/") {
+					http.Error(w, `{"error":"password change required: open /auth/setup"}`, http.StatusForbidden)
+					return
+				}
+				http.Redirect(w, r, "/auth/setup?next="+url.QueryEscape(r.URL.RequestURI()), http.StatusFound)
+				return
+			}
+			if strings.HasPrefix(r.URL.Path, "/api/") {
+				w.Header().Set("WWW-Authenticate", `Basic realm="p10logs"`)
+				http.Error(w, `{"error":"unauthorized"}`, http.StatusUnauthorized)
+				return
+			}
+			http.Redirect(w, r, "/auth/login?next="+url.QueryEscape(r.URL.RequestURI()), http.StatusFound)
 		case "oidc":
 			if strings.HasPrefix(r.URL.Path, "/api/") {
 				http.Error(w, `{"error":"unauthorized"}`, http.StatusUnauthorized)
@@ -289,9 +320,22 @@ func (a *Auth) sign(payload string) string {
 	return hex.EncodeToString(m.Sum(nil))
 }
 
-func (a *Auth) newSession(email string) string {
-	payload := base64.RawURLEncoding.EncodeToString([]byte(email + "|" + strconv.FormatInt(time.Now().Add(a.cfg.SessionTTL).Unix(), 10)))
+func (a *Auth) newSession(user string, mustChange bool) string {
+	flag := ""
+	if mustChange {
+		flag = "|mc"
+	}
+	payload := base64.RawURLEncoding.EncodeToString([]byte(user + "|" + strconv.FormatInt(time.Now().Add(a.cfg.SessionTTL).Unix(), 10) + flag))
 	return payload + "." + a.sign(payload)
+}
+
+// session returns the cookie identity and whether it still has to change its password.
+func (a *Auth) session(r *http.Request) (string, bool) {
+	c, err := r.Cookie(cookieName)
+	if err != nil {
+		return "", false
+	}
+	return a.verifySession(c.Value)
 }
 
 func (a *Auth) verifySession(v string) (string, bool) {
@@ -307,15 +351,15 @@ func (a *Auth) verifySession(v string) (string, bool) {
 	if err != nil {
 		return "", false
 	}
-	parts := strings.SplitN(string(raw), "|", 2)
-	if len(parts) != 2 {
+	parts := strings.Split(string(raw), "|")
+	if len(parts) < 2 {
 		return "", false
 	}
 	exp, _ := strconv.ParseInt(parts[1], 10, 64)
 	if time.Now().Unix() > exp {
 		return "", false
 	}
-	return parts[0], true
+	return parts[0], len(parts) > 2 && parts[2] == "mc"
 }
 
 func (a *Auth) redirectURL(r *http.Request) string {
@@ -342,12 +386,17 @@ func secure(r *http.Request) bool {
 func (a *Auth) Routes(mux *http.ServeMux) {
 	mux.HandleFunc("/auth/me", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(map[string]string{"user": a.User(r), "mode": a.cfg.Mode})
+		_, mc := a.session(r)
+		json.NewEncoder(w).Encode(map[string]any{"user": a.User(r), "mode": a.cfg.Mode, "must_change": mc, "local": a.cfg.Mode == "basic" && a.users != nil})
 	})
 	mux.HandleFunc("/auth/logout", func(w http.ResponseWriter, r *http.Request) {
 		http.SetCookie(w, &http.Cookie{Name: cookieName, Value: "", Path: "/", MaxAge: -1, HttpOnly: true, SameSite: http.SameSiteLaxMode, Secure: secure(r)})
 		http.Redirect(w, r, "/", http.StatusFound)
 	})
+	if a.cfg.Mode == "basic" {
+		a.localRoutes(mux)
+		return
+	}
 	if a.cfg.Mode != "oidc" {
 		return
 	}
@@ -396,7 +445,7 @@ func (a *Auth) Routes(mux *http.ServeMux) {
 			http.Error(w, "email not allowed: "+claims.Email, http.StatusForbidden)
 			return
 		}
-		http.SetCookie(w, &http.Cookie{Name: cookieName, Value: a.newSession(claims.Email), Path: "/", MaxAge: int(a.cfg.SessionTTL.Seconds()), HttpOnly: true, SameSite: http.SameSiteLaxMode, Secure: secure(r)})
+		a.setSession(w, r, claims.Email, false)
 		http.SetCookie(w, &http.Cookie{Name: "p10st", Value: "", Path: "/auth", MaxAge: -1})
 		next, _ := base64.RawURLEncoding.DecodeString(parts[2])
 		if len(next) == 0 || next[0] != '/' {

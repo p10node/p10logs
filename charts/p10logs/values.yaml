@@ -160,8 +160,11 @@ hub:
     ui:
       mode: basic
       basic:
-        username: admin
-        password: ""            # empty => auto-generated, printed in NOTES
+        username: admin         # only used with `password` / `existingSecret`
+        # Empty => first sign-in is admin/admin and the hub asks for a new password, which it
+        # stores hashed on the data volume (/data/auth/users.json). Set a password here or
+        # point at a secret to manage it outside the hub instead (no onboarding then).
+        password: ""
         existingSecret: ""      # keys `username`, `password`
       # Any OIDC provider works (Keycloak, Dex, Authentik, Zitadel, Kanidm, Google, Entra).
       # Register redirect URI: https://<hub-host>/auth/callback

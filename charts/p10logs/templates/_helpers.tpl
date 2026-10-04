@@ -110,13 +110,10 @@ http://{{ include "p10logs.hub.fullname" . }}.{{ .Release.Namespace }}.svc:{{ .V
 {{- end -}}
 
 {{- define "p10logs.uiPassword" -}}
-{{- $name := printf "%s-ui" (include "p10logs.fullname" .) -}}
-{{- $existing := (lookup "v1" "Secret" .Release.Namespace $name) -}}
-{{- if .Values.hub.auth.ui.basic.password -}}
 {{ .Values.hub.auth.ui.basic.password }}
-{{- else if and $existing $existing.data (index $existing.data "password") -}}
-{{ index $existing.data "password" | b64dec }}
-{{- else -}}
-{{ randAlphaNum 24 }}
 {{- end -}}
+
+{{/* true when basic mode takes its credentials from a secret (explicit password or existingSecret) */}}
+{{- define "p10logs.uiSecretEnabled" -}}
+{{- if and (eq .Values.hub.auth.ui.mode "basic") (or .Values.hub.auth.ui.basic.password .Values.hub.auth.ui.basic.existingSecret) -}}true{{- end -}}
 {{- end -}}

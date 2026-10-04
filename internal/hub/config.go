@@ -3,6 +3,7 @@ package hub
 
 import (
 	"os"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -34,7 +35,8 @@ type Config struct {
 			Clusters   []string `yaml:"clusters"`   // globs, default ["*"]
 			Namespaces []string `yaml:"namespaces"` // globs, default ["*"]
 		} `yaml:"roles"`
-		SessionKeyFile string `yaml:"sessionKeyFile"`
+		SessionKeyFile string `yaml:"sessionKeyFile"` // default <dataDir>/auth/session.key (generated once)
+		UsersFile      string `yaml:"usersFile"`      // default <dataDir>/auth/users.json (basic mode)
 		PublicURL      string `yaml:"publicUrl"`
 		UI             struct {
 			Mode  string `yaml:"mode"`
@@ -195,6 +197,12 @@ func Load(path string) (*Config, error) {
 	}
 	if c.Auth.UI.Mode == "" {
 		c.Auth.UI.Mode = "none"
+	}
+	if c.Auth.SessionKeyFile == "" {
+		c.Auth.SessionKeyFile = filepath.Join(c.DataDir, "auth", "session.key")
+	}
+	if c.Auth.UsersFile == "" {
+		c.Auth.UsersFile = filepath.Join(c.DataDir, "auth", "users.json")
 	}
 	if c.Query.MaxConcurrent == 0 {
 		c.Query.MaxConcurrent = 8

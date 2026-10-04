@@ -155,11 +155,9 @@ kubectl -n p10logs port-forward svc/p10logs-hub 8080:8080
 open http://localhost:8080
 ```
 
-Login is `admin` / the generated password:
-
-```bash
-kubectl -n p10logs get secret p10logs-ui -o jsonpath='{.data.password}' | base64 -d
-```
+First sign-in is `admin` / `admin`; the hub then asks you to set a new password and keeps
+it hashed on its data volume. Prefer to manage it outside? Set
+`hub.auth.ui.basic.password` or `existingSecret` and no onboarding happens.
 
 Within a few seconds the tree fills with every namespace and pod on the cluster,
 including logs that were already on disk before p10logs was installed (current plus
@@ -344,9 +342,12 @@ curl -s -u admin:$PW 'http://localhost:8080/api/v1/query?namespace=payments&pod=
   of `hostPath`.
 - Agent → hub: bearer token (generated on install, or yours), TLS via your Ingress,
   optional private CA. Per-cluster tokens in v0.3.
-- Hub UI/API: `basic` (default, generated password), `oidc` (authorization-code flow
-  with an email or domain allow-list), or `none` if you front it with your own SSO proxy.
-  Scripts can use `hub.auth.apiTokens` as bearer tokens in any mode.
+- Hub UI/API: `basic` (default: login form with a session cookie; first run is
+  `admin`/`admin` followed by a forced password change, passwords stored as PBKDF2-SHA256
+  on the data volume, changeable in the UI; or a password from a Kubernetes secret),
+  `oidc` (authorization-code flow with an email or domain allow-list, roles by user or
+  domain), or `none` if you front it with your own SSO proxy. HTTP Basic headers and
+  `hub.auth.apiTokens` bearer tokens work for scripts in any mode.
 - Viewer roles (`hub.auth.roles`) scope reads: a role lists users (basic usernames or
   OIDC emails), email domains, or its own API tokens, plus cluster and namespace globs.
   Once any role exists, identities that match none are denied; global `apiTokens` stay
@@ -511,4 +512,4 @@ snapshots, or federation for isolation.
 
 ## License
 
-Apache-2.0. See [LICENSE](LICENSE).
+Copyright 2026 p10node. Apache-2.0, see [LICENSE](LICENSE) and [NOTICE](NOTICE).

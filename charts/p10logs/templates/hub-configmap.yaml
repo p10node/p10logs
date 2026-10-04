@@ -20,7 +20,7 @@ data:
       publicUrl: {{ .Values.hub.auth.publicUrl | quote }}
       ui:
         mode: {{ .Values.hub.auth.ui.mode }}
-        {{- if eq .Values.hub.auth.ui.mode "basic" }}
+        {{- if include "p10logs.uiSecretEnabled" . }}
         basic:
           usernameFile: /etc/p10logs/ui/username
           passwordFile: /etc/p10logs/ui/password

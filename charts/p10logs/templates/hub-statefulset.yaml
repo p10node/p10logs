@@ -104,7 +104,7 @@ spec:
             - name: ingest
               mountPath: /etc/p10logs/ingest
               readOnly: true
-            {{- if eq .Values.hub.auth.ui.mode "basic" }}
+            {{- if include "p10logs.uiSecretEnabled" . }}
             - name: ui
               mountPath: /etc/p10logs/ui
               readOnly: true
@@ -133,7 +133,7 @@ spec:
         - name: ingest
           secret:
             secretName: {{ include "p10logs.ingestSecretName" . }}
-        {{- if eq .Values.hub.auth.ui.mode "basic" }}
+        {{- if include "p10logs.uiSecretEnabled" . }}
         - name: ui
           secret:
             secretName: {{ default (printf "%s-ui" (include "p10logs.fullname" .)) .Values.hub.auth.ui.basic.existingSecret }}

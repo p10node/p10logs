@@ -3,6 +3,7 @@ package main
 
 import (
 	"context"
+	"crypto/rand"
 	"encoding/json"
 	"errors"
 	"flag"
@@ -10,6 +11,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"syscall"
 	"time"
 
@@ -111,16 +113,21 @@ func main() {
 	for _, r := range cfg.Auth.Roles {
 		roles = append(roles, auth.Role{Name: r.Name, Users: r.Users, Domains: r.Domains, APITokens: r.APITokens, Clusters: r.Clusters, Namespaces: r.Namespaces})
 	}
-	var sessionKey []byte
-	if cfg.Auth.SessionKeyFile != "" {
-		sessionKey, _ = os.ReadFile(cfg.Auth.SessionKeyFile)
+	sessionKey, _ := os.ReadFile(cfg.Auth.SessionKeyFile)
+	if len(sessionKey) < 32 { // generate once so sessions survive restarts
+		sessionKey = make([]byte, 32)
+		rand.Read(sessionKey)
+		if err := os.MkdirAll(filepath.Dir(cfg.Auth.SessionKeyFile), 0o700); err == nil {
+			os.WriteFile(cfg.Auth.SessionKeyFile, sessionKey, 0o600)
+		}
 	}
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer stop()
 	a, err := auth.New(ctx, auth.Config{IngestTokens: cfg.Auth.IngestTokens, ClusterTokens: clusterTokens, APITokens: cfg.Auth.APITokens, Roles: roles, Mode: cfg.Auth.UI.Mode,
 		BasicUser: cfg.Auth.UI.Basic.Username, BasicPass: cfg.Auth.UI.Basic.Password,
 		OIDCIssuer: cfg.Auth.UI.OIDC.IssuerURL, OIDCClientID: cfg.Auth.UI.OIDC.ClientID, OIDCSecret: cfg.Auth.UI.OIDC.ClientSecret,
-		AllowedEmails: cfg.Auth.UI.OIDC.AllowedEmails, AllowedDomains: cfg.Auth.UI.OIDC.AllowedDomains, SessionKey: sessionKey, PublicURL: cfg.Auth.PublicURL})
+		AllowedEmails: cfg.Auth.UI.OIDC.AllowedEmails, AllowedDomains: cfg.Auth.UI.OIDC.AllowedDomains, SessionKey: sessionKey, PublicURL: cfg.Auth.PublicURL,
+		UsersFile: cfg.Auth.UsersFile})
 	if err != nil {
 		log.Error("auth", "err", err)
 		os.Exit(1)

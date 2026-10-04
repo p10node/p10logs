@@ -73,6 +73,27 @@ Real-cluster readiness. No format or API changes.
   `ParseDuration` rejects `d`, so `-7d` silently became the one-hour default: the UI's
   7d preset returned *fewer* lines than 24h. Unit test for `parseTime`, e2e check with a
   two-day-old line.
+- Auth, first run: `ui.mode: basic` is now a login form with a session cookie. Without a
+  configured password the hub seeds `admin` / `admin` and forces a new password on the
+  first sign-in (stored as PBKDF2-SHA256 in `/data/auth/users.json`, so it survives restarts
+  and upgrades); "password" in the header changes it later. A password from
+  `hub.auth.ui.basic.password` / `existingSecret` still works and skips onboarding. HTTP
+  Basic headers keep working for scripts. The session key is generated once under
+  `/data/auth/session.key`, so sessions survive hub restarts. The chart no longer
+  generates a random password secret by default.
+- UI: in fixed-height mode a message with embedded newlines (a joined stack trace) grew
+  its row beyond the 20 px the virtual list assumes, so the scroll height drifted and the
+  bottom could not be reached (jumping to it emptied the view and clamped the scroll
+  back). Rows are now clamped to one line with newlines shown as ⏎; Wrap mode still shows
+  them in full.
+- UI: an empty result says when the newest line of the selection was and offers the
+  range that covers it ("No lines in the last 1h · newest 1h 21m ago · Show 6h").
+- UI: the address bar always equals the permalink (selection, filter, range, follow, wrap,
+  JSON, timestamp mode, tab), so copying the URL works as well as the Permalink button;
+  wrap / JSON / timestamp mode are restored from the URL on load.
+- UI: a round ⤓ button in the bottom-right corner of the log view appears whenever you are
+  scrolled up and jumps back to the newest line (also the End key); the "↓ N new lines"
+  pill keeps counting what arrived meanwhile.
 - UI: the "Pick a container on the left" overlay never went away because its `display:grid`
   rule beat the `hidden` attribute; a global `[hidden]{display:none!important}` fixes it.
 - UI: the Agents tab rendered its tiles and table inside the (hidden) stream-tree column
@@ -85,6 +106,8 @@ Real-cluster readiness. No format or API changes.
   timing-dependent; the test hub for that step is killed on exit; test hubs bind
   `127.0.0.1` explicitly (on some macOS hosts IPv4 connections to a dual-stack `:port`
   listener hang in SYN_SENT once Docker networks exist).
+- License: copyright notice filled in (2026 p10node), `NOTICE` file, OCI license/source
+  labels on both images.
 - CI: `kind-multi` job runs the multi-cluster e2e.
 
 ## 1.0.0 — 2026-10-01
