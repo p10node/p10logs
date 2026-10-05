@@ -136,13 +136,16 @@ wait_min "cluster=spoke&namespace=payments&start=-10m&limit=50" 5 && pass "secon
 wait_min "cluster=hub&namespace=kube-system&start=-10m&limit=20" 1 && pass "system pods collected" || fail "kube-system logs"
 wait_min "label=tier:edge&start=-10m&limit=20" 1 && pass "label selector tier=edge (enrichment on both clusters)" || fail "label selector"
 wait_min "label=_owner:Deployment/api&start=-10m&limit=20" 1 && pass "synthetic _owner label selects the api Deployment" || fail "_owner label"
-api streams | python3 -c '
+owners_ok(){ api streams | python3 -c '
 import json,sys;d=json.load(sys.stdin);o={(c["name"],n["name"],p["name"]):p.get("labels",{}).get("_owner") for c in d["clusters"] for n in c["namespaces"] for p in n["pods"]}
 # Job/migrate is not required: on a re-run its pod finished before the current agents started.
 # The agent does not collect itself, so the DaemonSet check uses whatever DaemonSet the cluster runs (kindnet, kube-proxy).
 vals=[v for v in o.values() if v]
 want={"CronJob/report":any(v=="CronJob/report" for v in vals),"Deployment/api":any(v=="Deployment/api" for v in vals),"DaemonSet/*":any(v.startswith("DaemonSet/") for v in vals)}
-missing=[k for k,ok in want.items() if not ok]; assert not missing, ("owners not found", missing, sorted(set(vals))[:12])' && pass "owners derived: Deployment, DaemonSet, CronJob" || fail "_owner derivation"
+missing=[k for k,ok in want.items() if not ok]; assert not missing, ("owners not found", missing, sorted(set(vals))[:12])'; }
+# CronJob report runs every 2 min, so its first pod (and the CronJob/report owner) can appear up to ~2.5 min after apply.
+ok=0; for i in $(seq 1 150); do owners_ok >/dev/null 2>&1 && ok=1 && break; sleep 1; done
+[ $ok = 1 ] && pass "owners derived: Deployment, DaemonSet, CronJob" || { owners_ok; fail "_owner derivation"; }
 [ "$(count 'namespace=shop&pod=api-*&q=level%3Derror&start=-10m&limit=200')" -ge 1 ] && pass "JSON field filter level=error" || fail "level=error"
 [ "$(count 'namespace=shop&pod=api-*&q=%22upstream+timeout%22&start=-10m&limit=50')" -ge 1 ] && pass "stderr lines present (phrase filter)" || fail "stderr/phrase"
 
