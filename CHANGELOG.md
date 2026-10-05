@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.1.1 — 2026-10-05
+
+- UI: the bar listing the selected streams above the log view can be collapsed to a
+  single line (▸/▾ button at its left, hover for the live/gone count). It folds by itself
+  once more than 8 streams are selected, so tailing a whole CronJob no longer pushes the
+  logs off the screen; the choice sticks for the session.
+
 ## 1.1.0 — 2026-10-04
 
 Real-cluster readiness. No format or API changes.

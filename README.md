@@ -484,7 +484,7 @@ make demo            # apply hack/demo/ (JSON, crash loops, stack traces, 20 KiB
 make images-tar      # dist/p10logs-images-<ver>.tar for nodes without registry access
 make run-hub         # hub on :8080, UI auth none, ingest token "dev", data in ./data
 make package         # dist/p10logs-<ver>.tgz; before the first GitHub release install from this file
-                     # (helm install p10logs dist/p10logs-1.1.0.tgz) with images from `make images-tar`
+                     # (helm install p10logs dist/p10logs-1.1.1.tgz) with images from `make images-tar`
 make run-agent       # agent tailing ./hack/fakepods into that hub
 make lint template   # helm
 make images          # multi-arch images via buildx
