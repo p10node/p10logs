@@ -61,7 +61,7 @@ helm upgrade --install p10logs charts/p10logs -n p10logs --kube-context "kind-$H
   --set hub.service.type=NodePort --set hub.service.nodePort=$PORT \
   --set hub.storage.persistence.size=5Gi --set hub.storage.retention.maxAge=72h \
   --set agent.enrich.enabled=true --set 'agent.enrich.labels={app,tier,app.kubernetes.io/name}' \
-  --set agent.rateLimit.linesPerSecondPerContainer=200 \
+  --set agent.rateLimit.linesPerSecondPerContainer=50 \
   --set "hub.auth.clusterTokens[0].token=$SPOKE_TOKEN" --set "hub.auth.clusterTokens[0].clusters[0]=spoke" \
   --wait --timeout 300s >/dev/null
 if [ $RERUN_HUB = 1 ]; then # same image tag was reloaded: restart to pick up the new binaries
@@ -165,8 +165,11 @@ import json,sys;ls=json.load(sys.stdin)["lines"];m=ls[0]["m"];assert "\n\tat " i
 NH=$(count "cluster=hub&namespace=shop&pod=java-*&q=%2Fat+com.example%2F&start=-10m&limit=50")
 [ "$NH" -ge 2 ] && pass "hub cluster (multiline off) keeps $NH separate 'at com.example' lines" || echo "  · hub cluster trace lines: $NH (java pod may not have thrown yet)"
 
-echo "9. per-container rate limit (hub cluster: 200 lines/s, spammer ~400 lines/s)"
-wait_min "cluster=hub&namespace=shop&pod=spammer-*&q=%22rate+limit%22&start=-10m&limit=5" 1 90 && pass "'dropped N lines (rate limit)' marker emitted" || fail "no rate-limit marker"
+echo "9. per-container rate limit (hub cluster: 50 lines/s, spammer ~400 lines/s nominal)"
+# 50, not 200: the spammer is a busybox loop (two forks per 20-line burst) and on a loaded CI runner its real
+# rate has been seen under 200 lines/s. Every other demo container stays below ~10 lines/s, so only it is cut.
+spam_rate(){ $KH -n shop logs deploy/spammer --since=5s 2>/dev/null | wc -l | tr -d ' '; }
+wait_min "cluster=hub&namespace=shop&pod=spammer-*&q=%22rate+limit%22&start=-10m&limit=5" 1 90 && pass "'dropped N lines (rate limit)' marker emitted" || fail "no rate-limit marker (spammer wrote $(spam_rate) lines in the last 5 s)"
 D=$(api status | python3 -c 'import json,sys;print(sum(a["dropped"] for a in json.load(sys.stdin)["agents"] if a["cluster"]=="hub"))')
 [ "$D" -gt 0 ] && pass "agents report dropped=$D in status" || fail "dropped counter is 0"
 

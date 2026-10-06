@@ -4,6 +4,8 @@
 
 **Persistent, multi-cluster Kubernetes pod logs. Nothing else.**
 
+Demo: https://demo-p10logs.p10node.org (`admin`/`BqJDmpsGRJE85Z0cULFOeoRP`)
+
 p10logs is a small, self-contained log system for Kubernetes: one DaemonSet agent that
 reads container log files straight off the node, one hub with a persistent volume that
 stores and indexes them, and a fast built-in UI to browse, search, and tail pods across
@@ -19,7 +21,7 @@ no object store required.
 > upgrade with data retained) and a multi-cluster kind run (`make e2e-multi`: 3-node hub
 > cluster + spoke cluster pushing over the network, demo workloads, restart boundaries,
 > 20 KiB lines, multiline traces, rate limits, token scoping, hub outage with spool and
-> drain). Not yet run on a production cluster. See [CHANGELOG.md](CHANGELOG.md).
+> drain). See [CHANGELOG.md](CHANGELOG.md).
 
 ---
 
