@@ -106,6 +106,11 @@ type Config struct {
 	// UsersFile holds local users for basic mode (passwords set through the UI). When no
 	// BasicPass is configured and the file is empty, admin/admin is seeded with must_change.
 	UsersFile string
+	// LockPassword makes the configured BasicUser/BasicPass the only credentials: the users
+	// file is not opened (so nothing stored there takes precedence), /auth/password is
+	// refused and the UI hides the change-password link. For demo hubs where everyone
+	// shares one password and nobody may change it. Requires BasicUser and BasicPass.
+	LockPassword bool
 }
 
 // Auth holds compiled state.
@@ -134,7 +139,10 @@ func New(ctx context.Context, cfg Config) (*Auth, error) {
 	switch cfg.Mode {
 	case "none":
 	case "basic":
-		if cfg.UsersFile != "" {
+		if cfg.LockPassword && (cfg.BasicUser == "" || cfg.BasicPass == "") {
+			return nil, errors.New("auth: lockPassword needs a configured username and password")
+		}
+		if cfg.UsersFile != "" && !cfg.LockPassword {
 			us, err := openUsers(cfg.UsersFile)
 			if err != nil {
 				return nil, err

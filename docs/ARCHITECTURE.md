@@ -392,7 +392,9 @@ flow, email/domain allow-list). `basic` is a login form: local users live in
 `/data/auth/users.json` (PBKDF2-SHA256, 600k iterations); with no configured password the
 hub seeds `admin`/`admin` flagged `must_change`, and `RequireUI` sends that session to
 `/auth/setup` (API: 403) until a new password is stored. A password from the chart secret
-is checked after the users file and never seeds the default. HTTP Basic headers are
+is checked after the users file and never seeds the default; with `lockPassword` (demo
+hubs) the users file is not opened at all, so the secret is the only credential and
+`/auth/password` answers 403. HTTP Basic headers are
 accepted on every request for scripts. Sessions are HMAC-SHA256-signed cookies carrying
 user, expiry and the must-change flag; the key is generated once into
 `/data/auth/session.key`, so a hub restart does not log anyone out.

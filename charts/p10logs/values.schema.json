@@ -364,6 +364,9 @@
                     },
                     "existingSecret": {
                       "type": "string"
+                    },
+                    "lockPassword": {
+                      "type": "boolean"
                     }
                   }
                 },

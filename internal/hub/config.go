@@ -45,6 +45,7 @@ type Config struct {
 				PasswordFile string `yaml:"passwordFile"`
 				Username     string `yaml:"username"`
 				Password     string `yaml:"password"`
+				LockPassword bool   `yaml:"lockPassword"` // demo: configured password only, no change via UI
 			} `yaml:"basic"`
 			OIDC struct {
 				IssuerURL        string   `yaml:"issuerUrl"`

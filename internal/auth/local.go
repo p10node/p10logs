@@ -157,19 +157,20 @@ button{margin-top:18px;width:100%;background:var(--accent);color:#08201e;border:
 </style></head><body>
 <form method="post" action="{{.Action}}" autocomplete="on">
 <h1><i></i>{{.Title}}</h1><p>{{.Lead}}</p>
-{{if .ShowUser}}<label for="u">Username</label><input id="u" name="user" value="{{.User}}" autocomplete="username" autofocus required>{{else}}<input type="hidden" name="user" value="{{.User}}">{{end}}
+{{if not .Notice}}{{if .ShowUser}}<label for="u">Username</label><input id="u" name="user" value="{{.User}}" autocomplete="username" autofocus required>{{else}}<input type="hidden" name="user" value="{{.User}}">{{end}}
 {{if .ShowCurrent}}<label for="c">Current password</label><input id="c" name="current" type="password" autocomplete="current-password" required>{{end}}
 {{if .ShowNew}}<label for="n">New password <span style="color:var(--muted)">(8+ characters)</span></label><input id="n" name="password" type="password" autocomplete="new-password" minlength="8" required>
 <label for="n2">Repeat new password</label><input id="n2" name="password2" type="password" autocomplete="new-password" minlength="8" required>{{else}}<label for="p">Password</label><input id="p" name="password" type="password" autocomplete="current-password" required>{{end}}
-<input type="hidden" name="next" value="{{.Next}}">
+<input type="hidden" name="next" value="{{.Next}}">{{end}}
 {{if .Error}}<div class="err">{{.Error}}</div>{{end}}
-<button type="submit">{{.Button}}</button>
+{{if not .Notice}}<button type="submit">{{.Button}}</button>{{end}}
 {{if .Foot}}<div class="foot">{{.Foot}}</div>{{end}}
 </form></body></html>`))
 
 type page struct {
 	Title, Lead, Action, Button, User, Next, Error string
 	ShowUser, ShowCurrent, ShowNew                 bool
+	Notice                                         bool // message only: no inputs, no submit button
 	Foot                                           template.HTML
 }
 
@@ -255,6 +256,10 @@ func (a *Auth) localRoutes(mux *http.ServeMux) {
 		user, _ := a.session(r)
 		if user == "" {
 			http.Redirect(w, r, "/auth/login?next=/auth/password", http.StatusFound)
+			return
+		}
+		if a.cfg.LockPassword {
+			render(w, http.StatusForbidden, page{Title: "Change password", Lead: "Signed in as " + user + ".", Notice: true, Error: "Password changes are disabled on this hub.", Foot: template.HTML(`<a href="/">Back to logs</a>`)})
 			return
 		}
 		p := page{Title: "Change password", Lead: "Signed in as " + user + ".", Action: "/auth/password", Button: "Change password", User: user, Next: "/", ShowCurrent: true, ShowNew: true, Foot: template.HTML(`<a href="/">Back to logs</a>`)}

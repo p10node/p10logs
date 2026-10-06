@@ -2,6 +2,8 @@ package auth
 
 import (
 	"context"
+	"encoding/json"
+	"io"
 	"net/http"
 	"net/http/cookiejar"
 	"net/http/httptest"
@@ -108,5 +110,72 @@ func TestConfiguredPasswordNoOnboarding(t *testing.T) {
 	}
 	if ok, _ := a.checkLocal("admin", "admin"); ok {
 		t.Fatal("default must not be seeded when a password is configured")
+	}
+}
+
+// Demo mode: with LockPassword the configured password is the only one accepted, whatever
+// the users file says, /auth/password is refused and /auth/me reports no local store.
+func TestLockPassword(t *testing.T) {
+	dir := t.TempDir()
+	users := filepath.Join(dir, "users.json")
+	// a store left behind by someone who changed the password before the lock
+	prev, err := New(context.Background(), Config{Mode: "basic", UsersFile: users})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := prev.SetPassword("demo", "changed-by-user"); err != nil {
+		t.Fatal(err)
+	}
+
+	if _, err := New(context.Background(), Config{Mode: "basic", UsersFile: users, LockPassword: true}); err == nil {
+		t.Fatal("lock without a configured password must fail")
+	}
+	a, err := New(context.Background(), Config{Mode: "basic", BasicUser: "demo", BasicPass: "demo-pass-1", UsersFile: users, LockPassword: true})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if ok, mc := a.checkLocal("demo", "demo-pass-1"); !ok || mc {
+		t.Fatal("configured password must work")
+	}
+	if ok, _ := a.checkLocal("demo", "changed-by-user"); ok {
+		t.Fatal("users file must be ignored when locked")
+	}
+	if ok, _ := a.checkLocal("admin", "admin"); ok {
+		t.Fatal("default must not be seeded")
+	}
+	if err := a.SetPassword("demo", "another-pass-1"); err == nil {
+		t.Fatal("SetPassword must fail when locked")
+	}
+
+	mux := http.NewServeMux()
+	a.Routes(mux)
+	srv := httptest.NewServer(mux)
+	defer srv.Close()
+	jar, _ := cookiejar.New(nil)
+	c := &http.Client{Jar: jar, CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }}
+	if r, _ := c.PostForm(srv.URL+"/auth/login", url.Values{"user": {"demo"}, "password": {"demo-pass-1"}}); r.StatusCode != 302 || r.Header.Get("Location") != "/" {
+		t.Fatalf("login: %d %s", r.StatusCode, r.Header.Get("Location"))
+	}
+	if r, _ := c.Get(srv.URL + "/auth/password"); r.StatusCode != 403 {
+		t.Fatalf("change page: %d", r.StatusCode)
+	} else if b, _ := io.ReadAll(r.Body); strings.Contains(string(b), `name="password"`) || strings.Contains(string(b), "<button") {
+		t.Fatal("locked page must not offer a form")
+	}
+	if r, _ := c.PostForm(srv.URL+"/auth/password", url.Values{"current": {"demo-pass-1"}, "password": {"another-pass-1"}, "password2": {"another-pass-1"}}); r.StatusCode != 403 {
+		t.Fatalf("change post: %d", r.StatusCode)
+	}
+	if ok, _ := a.checkLocal("demo", "another-pass-1"); ok {
+		t.Fatal("password changed despite lock")
+	}
+	r, _ := c.Get(srv.URL + "/auth/me")
+	var me struct {
+		User  string `json:"user"`
+		Local bool   `json:"local"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&me); err != nil {
+		t.Fatal(err)
+	}
+	if me.User != "demo" || me.Local {
+		t.Fatalf("me: %+v (local must be false so the UI hides the password link)", me)
 	}
 }

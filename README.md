@@ -168,7 +168,9 @@ open http://localhost:8080
 
 First sign-in is `admin` / `admin`; the hub then asks you to set a new password and keeps
 it hashed on its data volume. Prefer to manage it outside? Set
-`hub.auth.ui.basic.password` or `existingSecret` and no onboarding happens.
+`hub.auth.ui.basic.password` or `existingSecret` and no onboarding happens. For a public
+demo add `hub.auth.ui.basic.lockPassword=true`: the configured password is the only one
+accepted and nobody can change it from the UI.
 
 Within a few seconds the tree fills with every namespace and pod on the cluster,
 including logs that were already on disk before p10logs was installed (current plus
@@ -229,6 +231,7 @@ All configuration is Helm values. The important ones:
 | `hub.storage.retention.overrides`                 | `[]`                   | Per `<cluster>/<namespace>` glob, e.g. keep `prod/*` 30 d.                                                                                                                                                |
 | `hub.storage.objectStore.*`                       | off                    | Copy sealed chunks to any S3-compatible bucket after `uploadAfter`; evict local copies first under disk pressure; cold reads are transparent.                                                             |
 | `hub.auth.ui.mode`                                | `basic`                | `none`, `basic`, or `oidc`.                                                                                                                                                                               |
+| `hub.auth.ui.basic.lockPassword`                  | `false`                | Demo hubs: the configured password cannot be changed from the UI (needs `password` or `existingSecret`).                                                                                                  |
 | `hub.auth.clusterTokens`, `hub.auth.roles`        | `[]`                   | Ingest tokens bound to clusters; viewer roles bound to cluster/namespace globs.                                                                                                                           |
 | `hub.ingress.*` / `hub.httpRoute.*`               | off                    | Expose the hub.                                                                                                                                                                                           |
 | `hub.federation.peers`                            | `[]`                   | Other hubs to query, tail and export through this one.                                                                                                                                                    |
@@ -355,7 +358,8 @@ curl -s -u admin:$PW 'http://localhost:8080/api/v1/query?namespace=payments&pod=
   optional private CA. Per-cluster tokens in v0.3.
 - Hub UI/API: `basic` (default: login form with a session cookie; first run is
   `admin`/`admin` followed by a forced password change, passwords stored as PBKDF2-SHA256
-  on the data volume, changeable in the UI; or a password from a Kubernetes secret),
+  on the data volume, changeable in the UI; or a password from a Kubernetes secret,
+  optionally locked with `lockPassword` for demo hubs),
   `oidc` (authorization-code flow with an email or domain allow-list, roles by user or
   domain), or `none` if you front it with your own SSO proxy. HTTP Basic headers and
   `hub.auth.apiTokens` bearer tokens work for scripts in any mode.

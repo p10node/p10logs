@@ -1,4 +1,7 @@
 {{- if .Values.hub.enabled }}
+{{- if and .Values.hub.auth.ui.basic.lockPassword (not (include "p10logs.uiSecretEnabled" .)) }}
+{{- fail "hub.auth.ui.basic.lockPassword needs hub.auth.ui.mode=basic and a password (hub.auth.ui.basic.password or hub.auth.ui.basic.existingSecret)" }}
+{{- end }}
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -24,6 +27,7 @@ data:
         basic:
           usernameFile: /etc/p10logs/ui/username
           passwordFile: /etc/p10logs/ui/password
+          lockPassword: {{ .Values.hub.auth.ui.basic.lockPassword | default false }}
         {{- end }}
         {{- if eq .Values.hub.auth.ui.mode "oidc" }}
         oidc:

@@ -27,6 +27,9 @@ UI / API:
 UI login (basic, from secret):
   username: {{ .Values.hub.auth.ui.basic.username }}
   password: kubectl -n {{ .Release.Namespace }} get secret {{ default (printf "%s-ui" (include "p10logs.fullname" .)) .Values.hub.auth.ui.basic.existingSecret }} -o jsonpath='{.data.password}' | base64 -d
+{{- if .Values.hub.auth.ui.basic.lockPassword }}
+  password changes are disabled (hub.auth.ui.basic.lockPassword=true, demo mode)
+{{- end }}
 {{- else if eq .Values.hub.auth.ui.mode "basic" }}
 
 UI login: first sign-in is  admin / admin  — the hub then asks you to set a new password

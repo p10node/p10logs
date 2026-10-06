@@ -124,7 +124,7 @@ func main() {
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer stop()
 	a, err := auth.New(ctx, auth.Config{IngestTokens: cfg.Auth.IngestTokens, ClusterTokens: clusterTokens, APITokens: cfg.Auth.APITokens, Roles: roles, Mode: cfg.Auth.UI.Mode,
-		BasicUser: cfg.Auth.UI.Basic.Username, BasicPass: cfg.Auth.UI.Basic.Password,
+		BasicUser: cfg.Auth.UI.Basic.Username, BasicPass: cfg.Auth.UI.Basic.Password, LockPassword: cfg.Auth.UI.Basic.LockPassword,
 		OIDCIssuer: cfg.Auth.UI.OIDC.IssuerURL, OIDCClientID: cfg.Auth.UI.OIDC.ClientID, OIDCSecret: cfg.Auth.UI.OIDC.ClientSecret,
 		AllowedEmails: cfg.Auth.UI.OIDC.AllowedEmails, AllowedDomains: cfg.Auth.UI.OIDC.AllowedDomains, SessionKey: sessionKey, PublicURL: cfg.Auth.PublicURL,
 		UsersFile: cfg.Auth.UsersFile})

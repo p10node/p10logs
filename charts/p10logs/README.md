@@ -11,5 +11,6 @@ kubectl label ns p10logs pod-security.kubernetes.io/enforce=privileged --overwri
 Topologies: standalone (default), hub + spokes (`hub.enabled=false` on spokes with
 `agent.hub.url`/`agent.hub.token`), federation (`hub.federation.peers`). Object-storage
 offload via `hub.storage.objectStore`. Auth: `hub.auth.ui.mode` = `none` | `basic` |
-`oidc`; per-cluster ingest tokens `hub.auth.clusterTokens`; viewer roles
+`oidc` (`hub.auth.ui.basic.lockPassword=true` for demo hubs: fixed password, no change
+from the UI); per-cluster ingest tokens `hub.auth.clusterTokens`; viewer roles
 `hub.auth.roles`. See the project README and `values.yaml` for every option.

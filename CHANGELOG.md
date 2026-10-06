@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.1.2 — 2026-10-06
+
+- Hub, basic auth: `hub.auth.ui.basic.lockPassword=true` for demo hubs. The password from
+  the chart secret becomes the only accepted credential: the users file on the data volume
+  is not opened (so a password someone changed earlier no longer takes precedence),
+  `/auth/password` answers 403 and the UI hides the "password" link. The chart refuses the
+  flag without `hub.auth.ui.basic.password` or `existingSecret`; the hub refuses it
+  without a configured username and password.
+
 ## 1.1.1 — 2026-10-05
 
 - UI: the bar listing the selected streams above the log view can be collapsed to a

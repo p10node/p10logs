@@ -166,6 +166,10 @@ hub:
         # point at a secret to manage it outside the hub instead (no onboarding then).
         password: ""
         existingSecret: ""      # keys `username`, `password`
+        # Demo hubs: the configured password is the only one accepted and cannot be changed
+        # (no "change password" in the UI, /auth/password refused, users.json ignored).
+        # Needs `password` or `existingSecret`.
+        lockPassword: false
       # Any OIDC provider works (Keycloak, Dex, Authentik, Zitadel, Kanidm, Google, Entra).
       # Register redirect URI: https://<hub-host>/auth/callback
       oidc:
