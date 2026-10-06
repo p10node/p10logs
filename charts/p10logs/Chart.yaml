@@ -18,7 +18,7 @@ maintainers:
   - name: p10node
     url: https://github.com/p10node
 annotations:
-  artifacthub.io/category: logging
+  artifacthub.io/category: monitoring-logging
   artifacthub.io/license: Apache-2.0
   artifacthub.io/operator: "false"
   artifacthub.io/images: |
