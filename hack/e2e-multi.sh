@@ -25,6 +25,9 @@ KH="kubectl --context kind-$HUB"
 KS="kubectl --context kind-$SPOKE"
 pass(){ echo "  ✔ $1"; }
 fail(){ echo "  ✘ $1"; echo "--- hub pods"; $KH -n p10logs get pods -o wide || true; echo "--- spoke agent log"; $KS -n p10logs logs ds/p10logs-agent --tail=30 || true; exit 1; }
+# Not grep -q: it exits on the first match, the producer (curl, kubectl) then dies on SIGPIPE writing the
+# rest, and with pipefail the pipeline fails although the text was there. grep -c reads everything.
+has(){ grep -c -- "$1" >/dev/null; }
 t0=$(date +%s)
 
 echo "1. images ($VER)"
@@ -192,14 +195,14 @@ echo "13. hub outage: spoke spools to disk, then drains without loss or duplicat
 $KH -n p10logs scale sts/p10logs-hub --replicas=0 >/dev/null
 td=$(date +%s)
 for i in $(seq 1 60); do [ "$($KH -n p10logs get pods -l app.kubernetes.io/component=hub --no-headers 2>/dev/null | wc -l | tr -d ' ')" = 0 ] && break; sleep 1; done
-ok=0; for i in $(seq 1 90); do $KS -n p10logs logs ds/p10logs-agent --since=120s | grep -q 'push failed, spooling' && ok=1 && break; sleep 1; done
+ok=0; for i in $(seq 1 90); do $KS -n p10logs logs ds/p10logs-agent --since=120s | has 'push failed, spooling' && ok=1 && break; sleep 1; done
 dt=$(( $(date +%s) - td ))
 [ $ok = 1 ] && pass "spoke agent spooling ${dt}s after the hub pod went away" || fail "spoke never started spooling"
 [ $dt -le 30 ] && pass "noticed within 30 s (bounded push deadline)" || fail "took ${dt}s to notice: push hung on a dead connection"
 $KH -n p10logs scale sts/p10logs-hub --replicas=1 >/dev/null
 $KH -n p10logs rollout status sts/p10logs-hub --timeout=180s >/dev/null
 for i in $(seq 1 60); do curl -fs "$URL/readyz" >/dev/null 2>&1 && break; sleep 1; done
-ok=0; for i in $(seq 1 120); do $KS -n p10logs logs ds/p10logs-agent --since=180s | grep -q 'spool drained' && ok=1 && break; sleep 1; done
+ok=0; for i in $(seq 1 120); do $KS -n p10logs logs ds/p10logs-agent --since=180s | has 'spool drained' && ok=1 && break; sleep 1; done
 [ $ok = 1 ] && pass "spoke spool drained after hub returned" || fail "spool not drained"
 sleep 15
 q "cluster=spoke&namespace=shop&pod=longline-*&start=-20m&limit=1000" | python3 -c '
@@ -212,8 +215,8 @@ AGN=$(api status | python3 -c 'import json,sys,time;d=json.load(sys.stdin);now=t
 [ "$AGN" = 4 ] && pass "all 4 agents back" || fail "agents after outage: $AGN"
 
 echo "14. hub integrity"
-$KH -n p10logs logs sts/p10logs-hub --since=1h | grep -q '"level":"ERROR"' && fail "hub logged errors" || pass "no hub errors"
-curl -fs -u "admin:$PW" "$URL/" | grep -q '<title>p10logs' && pass "UI served" || fail "UI"
+$KH -n p10logs logs sts/p10logs-hub --since=1h | has '"level":"ERROR"' && fail "hub logged errors" || pass "no hub errors"
+curl -fs -u "admin:$PW" "$URL/" | has '<title>p10logs' && pass "UI served" || fail "UI"
 
 echo
 echo "ALL MULTI-CLUSTER E2E PASSED in $(( $(date +%s) - t0 ))s"

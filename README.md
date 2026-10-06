@@ -1,5 +1,7 @@
 # p10logs
 
+[![Artifact Hub](https://img.shields.io/endpoint?url=https://artifacthub.io/badge/repository/p10logs)](https://artifacthub.io/packages/search?repo=p10logs)
+
 **Persistent, multi-cluster Kubernetes pod logs. Nothing else.**
 
 p10logs is a small, self-contained log system for Kubernetes: one DaemonSet agent that
