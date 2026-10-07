@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+    <url>
+         <loc>https://p10node.github.io/p10logs/</loc>
+         <lastmod>2026-10-07</lastmod>
+    </url>
+    <url>
+         <loc>https://p10node.github.io/p10logs/ARCHITECTURE/</loc>
+         <lastmod>2026-10-07</lastmod>
+    </url>
+    <url>
+         <loc>https://p10node.github.io/p10logs/CHANGELOG/</loc>
+         <lastmod>2026-10-07</lastmod>
+    </url>
+    <url>
+         <loc>https://p10node.github.io/p10logs/FORMATS/</loc>
+         <lastmod>2026-10-07</lastmod>
+    </url>
+    <url>
+         <loc>https://p10node.github.io/p10logs/MULTI_CLUSTER/</loc>
+         <lastmod>2026-10-07</lastmod>
+    </url>
+</urlset>

@@ -1,0 +1,1903 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+      
+      
+        <link rel="canonical" href="https://p10node.github.io/p10logs/">
+      
+      
+      
+        <link rel="next" href="ARCHITECTURE/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
+    
+    
+      
+        <title>p10logs</title>
+      
+    
+    
+      <link rel="stylesheet" href="assets/stylesheets/main.ec1eaa64.min.css">
+      
+        
+        <link rel="stylesheet" href="assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL(".",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="slate" data-md-color-primary="teal" data-md-color-accent="indigo">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#p10logs" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="." title="p10logs" class="md-header__button md-logo" aria-label="p10logs" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            p10logs
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Overview
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="slate" data-md-color-primary="teal" data-md-color-accent="indigo"  aria-hidden="true"  type="radio" name="__palette" id="__palette_0">
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/p10node/p10logs" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    GitHub
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="." title="p10logs" class="md-nav__button md-logo" aria-label="p10logs" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    p10logs
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/p10node/p10logs" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    GitHub
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="." class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#screenshots" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Screenshots
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#why-another-log-tool" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Why another log tool
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#what-you-get" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        What you get
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#what-it-deliberately-is-not" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        What it deliberately is not
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#how-it-compares" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        How it compares
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#architecture" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Architecture
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#quick-start" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Quick start
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#multi-cluster" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Multi-cluster
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#configuration" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Configuration
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Configuration">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#gitops-argocd-flux" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        GitOps (ArgoCD, Flux)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#legacy-docker-cri-dockerd-nodes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Legacy Docker / cri-dockerd nodes
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#using-the-ui" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Using the UI
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#http-api" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        HTTP API
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#storage-and-retention" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Storage and retention
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#what-survives-what" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        What survives what
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#security" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Security
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Security">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#oidc" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        OIDC
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#resource-footprint" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Resource footprint
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#roadmap" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Roadmap
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#development" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Development
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#faq" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        FAQ
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#license" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        License
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="ARCHITECTURE/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Architecture
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="MULTI_CLUSTER/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Multi-cluster
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="FORMATS/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    On-disk formats
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="CHANGELOG/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Changelog
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#screenshots" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Screenshots
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#why-another-log-tool" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Why another log tool
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#what-you-get" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        What you get
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#what-it-deliberately-is-not" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        What it deliberately is not
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#how-it-compares" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        How it compares
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#architecture" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Architecture
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#quick-start" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Quick start
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#multi-cluster" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Multi-cluster
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#configuration" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Configuration
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Configuration">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#gitops-argocd-flux" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        GitOps (ArgoCD, Flux)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#legacy-docker-cri-dockerd-nodes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Legacy Docker / cri-dockerd nodes
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#using-the-ui" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Using the UI
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#http-api" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        HTTP API
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#storage-and-retention" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Storage and retention
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#what-survives-what" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        What survives what
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#security" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Security
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Security">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#oidc" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        OIDC
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#resource-footprint" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Resource footprint
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#roadmap" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Roadmap
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#development" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Development
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#faq" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        FAQ
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#license" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        License
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<h1 id="p10logs">p10logs<a class="headerlink" href="#p10logs" title="Permanent link">&para;</a></h1>
+<p><a href="https://artifacthub.io/packages/search?repo=p10logs"><img alt="Artifact Hub" src="https://img.shields.io/endpoint?url=https://artifacthub.io/badge/repository/p10logs" /></a></p>
+<p><strong>Persistent, multi-cluster Kubernetes pod logs. Nothing else.</strong></p>
+<p>Demo: https://demo-p10logs.p10node.org (<code>admin</code>/<code>BqJDmpsGRJE85Z0cULFOeoRP</code>)</p>
+<p>p10logs is a small, self-contained log system for Kubernetes: one DaemonSet agent that
+reads container log files straight off the node, one hub with a persistent volume that
+stores and indexes them, and a fast built-in UI to browse, search, and tail pods across
+any number of clusters. No metrics pipeline, no Prometheus, no Grafana, no Elasticsearch,
+no object store required.</p>
+<blockquote>
+<p>Status: <strong>v1.1.</strong> Formats and the <code>/api/v1</code> API are frozen since 1.0 (see
+<a href="FORMATS/">docs/FORMATS.md</a>). Verified by unit tests, a local end-to-end run
+(<code>make e2e</code>: ingest, filter, live tail, agent restart without loss or duplicates,
+kubelet rotation, <code>kill -9</code> hub recovery with WAL replay, pod deletion, index
+rebuild, per-cluster tokens, viewer roles, federation, S3 offload), a single-node kind
+run (<code>make e2e-kind</code>: chart install, real kubelet log files, label enrichment, Helm
+upgrade with data retained) and a multi-cluster kind run (<code>make e2e-multi</code>: 3-node hub
+cluster + spoke cluster pushing over the network, demo workloads, restart boundaries,
+20 KiB lines, multiline traces, rate limits, token scoping, hub outage with spool and
+drain). See <a href="CHANGELOG/">CHANGELOG.md</a>.</p>
+</blockquote>
+<hr />
+<h2 id="screenshots">Screenshots<a class="headerlink" href="#screenshots" title="Permanent link">&para;</a></h2>
+<p><img alt="Live tail of two api pods, interleaved by timestamp" src="img/tail.gif" /></p>
+<table>
+<thead>
+<tr>
+<th></th>
+<th></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><img alt="Logs: workload tree, two api pods and a crash-looping worker interleaved, JSON highlighted" src="img/logs.png" /></td>
+<td><img alt="Search: IllegalStateException across joined stack traces, Wrap mode" src="img/search.png" /></td>
+</tr>
+<tr>
+<td>Tree grouped by workload; three streams interleaved with a colour per pod, restart boundaries, JSON highlighting.</td>
+<td>Filter <code>IllegalStateException</code> over joined stack traces, Wrap mode, search terms highlighted.</td>
+</tr>
+</tbody>
+</table>
+<p><img alt="Agents page: hub stats and one row per node with lag, spool and dropped counts" src="img/agents.png" /></p>
+<h2 id="why-another-log-tool">Why another log tool<a class="headerlink" href="#why-another-log-tool" title="Permanent link">&para;</a></h2>
+<p>Teams that just want "show me the logs of that pod, including from before it
+restarted, across my clusters" currently choose between two bad options:</p>
+<p><strong>Live viewers without storage</strong> (Dozzle, kubetail, stern, <code>kubectl logs</code>) all stream
+through the Kubernetes API server: browser → apiserver → kubelet → log file. Every open
+container is a long-lived connection through the control plane, the kubelet polls and
+issues a CRI status call per stream per second, the kubelet hard-kills any stream after
+4 hours, only the <em>current</em> 10 MiB log file is ever visible, and nothing survives a pod
+restart. Dozzle additionally polls the metrics API for CPU/RAM charts and does all
+parsing and rendering in the browser, which is where its "UI timed out" and
+200-container freezes come from. The lag you feel is structural, not a bug.</p>
+<p><strong>Full observability stacks</strong> (Elastic, SigNoz/ClickHouse, Loki + Grafana, OpenObserve)
+persist logs but ship metrics, traces, dashboards, compactors, and multi-gigabyte
+memory floors along with them. Loki's monolithic mode runs 1.5–7 GiB; Elastic and
+ClickHouse start at 4 GB and want much more.</p>
+<p>VictoriaLogs is the honest exception: a single binary that stores logs in well under
+2 GiB at high ingest rates. If you already run it, keep it. p10logs exists for people
+who want something even smaller and more opinionated: a <strong>pod-centric UI</strong>, a
+<strong>one-command Helm install</strong> that covers many clusters, <strong>built-in auth</strong>, and a
+<strong>grep-like filter</strong> instead of a query language.</p>
+<h2 id="what-you-get">What you get<a class="headerlink" href="#what-you-get" title="Permanent link">&para;</a></h2>
+<ul>
+<li><strong>Every pod's stdout/stderr, persisted.</strong> Logs survive pod restarts, pod deletion,
+  node reboots, and p10logs upgrades. Retention is time- and size-based, per namespace
+  if you want.</li>
+<li><strong>No API-server load.</strong> The agent reads <code>/var/log/pods</code> directly; namespace, pod,
+  container, and restart count come from the file path. Zero watches by default; with
+  label enrichment on, exactly one watch per node, scoped to that node's pods.</li>
+<li><strong>Multi-cluster in one screen.</strong> Agents in any cluster push to one hub over HTTPS with
+  a bearer token, egress-only, so private clusters and home labs work. Or run a hub per
+  cluster and federate queries.</li>
+<li><strong>Fast UI.</strong> Tree of <code>cluster → namespace → pod → container</code>, live tail of one or many
+  pods with server-side rate limiting, virtualized rendering, time range, filter,
+  export, permalinks. Never opens a Kubernetes API stream.</li>
+<li><strong>Small.</strong> Target footprint: agent ~30 MiB RSS, hub a few hundred MiB for tens of
+  GB/day. Two static Go binaries, one Helm chart, one PVC.</li>
+<li><strong>Exactly-once, in practice.</strong> Agent checkpoints on the node; hub deduplicates by
+  file offset. Restarting anything neither loses nor duplicates lines.</li>
+<li><strong>Logs only.</strong> No metrics endpoint unless you turn it on. No scraping. No traces.</li>
+</ul>
+<h2 id="what-it-deliberately-is-not">What it deliberately is not<a class="headerlink" href="#what-it-deliberately-is-not" title="Permanent link">&para;</a></h2>
+<ul>
+<li>Not a query language or analytics engine. Filters are <code>word</code>, <code>!word</code>, <code>"phrase"</code>,
+  <code>/regex/</code>, <code>key=value</code> for JSON lines. No aggregations, no SQL, no LogQL.</li>
+<li>Not a full-text search cluster. Search is a time-bounded scan; a trigram bloom
+  filter per sealed chunk skips chunks that cannot contain the search words, so
+  cluster-wide "find this string in the last 30 days" is cheap when the string is rare,
+  and bounded by <code>query.maxScanBytes</code> when it is not.</li>
+<li>Not HA. The hub is a single StatefulSet replica on a PVC; agents buffer to disk while
+  it is down (restarts take seconds; the WAL makes them lossless). Back up the PVC or
+  enable object-storage offload for durability beyond one disk.</li>
+<li>Not a collector for arbitrary files, syslog, or journald. Container stdout/stderr only.</li>
+<li>Not an alerting system.</li>
+</ul>
+<h2 id="how-it-compares">How it compares<a class="headerlink" href="#how-it-compares" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th></th>
+<th>p10logs</th>
+<th>Dozzle</th>
+<th>kubetail</th>
+<th>Loki + Alloy</th>
+<th>VictoriaLogs + vlagent</th>
+<th>Elastic / SigNoz</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Reads logs from</td>
+<td>node files</td>
+<td>kube API</td>
+<td>kube API (or agent: node files)</td>
+<td>node files</td>
+<td>node files</td>
+<td>node files</td>
+</tr>
+<tr>
+<td>Survives pod restart / deletion</td>
+<td>yes</td>
+<td>no</td>
+<td>no</td>
+<td>yes</td>
+<td>yes</td>
+<td>yes</td>
+</tr>
+<tr>
+<td>Rotated log files visible</td>
+<td>yes</td>
+<td>no</td>
+<td>no</td>
+<td>yes</td>
+<td>yes</td>
+<td>yes</td>
+</tr>
+<tr>
+<td>Load on apiserver</td>
+<td>none</td>
+<td>1 stream per container viewed</td>
+<td>1 stream per container viewed</td>
+<td>none (labels: watch)</td>
+<td>none</td>
+<td>none</td>
+</tr>
+<tr>
+<td>Multi-cluster</td>
+<td>one chart, push or federate</td>
+<td>Docker only</td>
+<td>desktop context switch</td>
+<td>tenants</td>
+<td>tenants</td>
+<td>yes</td>
+</tr>
+<tr>
+<td>Typical hub RAM</td>
+<td>hundreds of MiB (target)</td>
+<td>n/a</td>
+<td>n/a</td>
+<td>1.5–7 GiB</td>
+<td>0.6–2 GiB</td>
+<td>≥ 4 GB</td>
+</tr>
+<tr>
+<td>Metrics shipped by default</td>
+<td>no</td>
+<td>CPU/RAM polling</td>
+<td>no</td>
+<td>Grafana stack</td>
+<td>optional</td>
+<td>full platform</td>
+</tr>
+<tr>
+<td>UI</td>
+<td>pod tree, tail, search</td>
+<td>container list, tail, stats</td>
+<td>pod tail, search</td>
+<td>Grafana</td>
+<td>vmui (query-first)</td>
+<td>full platform</td>
+</tr>
+<tr>
+<td>Auth built in</td>
+<td>token + basic/OIDC</td>
+<td>users file</td>
+<td>none</td>
+<td>Grafana</td>
+<td>none (vmauth)</td>
+<td>yes</td>
+</tr>
+<tr>
+<td>Query language</td>
+<td>grep-like</td>
+<td>none</td>
+<td>none</td>
+<td>LogQL</td>
+<td>LogsQL</td>
+<td>KQL / SQL</td>
+</tr>
+</tbody>
+</table>
+<p>Numbers as of 2026-09 from independent benchmarks and vendor docs:
+<a href="https://www.truefoundry.com/blog/victorialogs-vs-loki">VictoriaLogs vs Loki (Truefoundry)</a>,
+<a href="https://victoriametrics.com/blog/log-collectors-benchmark-2026/">log collectors benchmark 2026 (VictoriaMetrics)</a>,
+<a href="https://grafana.com/docs/loki/latest/setup/size/">Loki sizing</a>,
+<a href="https://signoz.io/docs/setup/capacity-planning/community/resources-planning/">SigNoz capacity planning</a>,
+<a href="https://dozzle.dev/guide/k8s">Dozzle K8s guide</a>, <a href="https://docs.kubetail.com/cluster-resources/cluster-agent">kubetail cluster agent</a>.</p>
+<h2 id="architecture">Architecture<a class="headerlink" href="#architecture" title="Permanent link">&para;</a></h2>
+<pre><code>  every node                                        one hub (StatefulSet + PVC)
+  ┌────────────────────────────┐                    ┌────────────────────────────────┐
+  │ /var/log/pods/…/0.log      │                    │ POST /api/v1/push              │
+  │        │ scan 2s + tail    │   zstd NDJSON      │   auth → WAL → dedup → chunk   │
+  │        ▼                   │ ───────────────►   │        │                       │
+  │ p10logs-agent (DaemonSet)  │   HTTPS, bearer    │   ┌────┴─────┐                 │
+  │  parse CRI · batch · ship  │                    │   ▼          ▼                 │
+  │  checkpoint · disk buffer  │                    │ /data/days  live bus → SSE     │
+  └────────────────────────────┘                    │ index.sqlite                   │
+                                                    │ retention loop                 │
+   other clusters ───────────────────────────────►  │ GET /api/v1/{streams,query,    │
+   (agents only, egress-only)                       │   tail,export}  ·  UI at /     │
+                                                    └────────────────────────────────┘
+</code></pre>
+<ul>
+<li><strong>Agent</strong>: Go, DaemonSet, runs as root with a read-only filesystem and no
+  capabilities. Discovers <code>&lt;ns&gt;_&lt;pod&gt;_&lt;uid&gt;/&lt;container&gt;/&lt;restart&gt;.log</code>, parses the CRI
+  format (including 16 KiB partial-line reassembly), follows kubelet rotation by inode,
+  checkpoints read offsets to a hostPath so restarts resume exactly, batches and
+  zstd-compresses lines, and pushes over HTTP. If the hub is unreachable it spools to a
+  bounded disk buffer on the node.</li>
+<li><strong>Hub</strong>: Go, StatefulSet with one PVC. Every push is fsynced to a write-ahead log
+  and acknowledged, buffered per stream in memory, then written to a per-stream chunk
+  under a UTC day directory as a large zstd frame. Chunks seal at 4 MiB or 5 minutes
+  with a footer (frame time index + trigram bloom filter), the SQLite catalog is
+  derived state, retention deletes day directories, cold chunks can live in any
+  S3-compatible bucket, and the UI is embedded.</li>
+<li><strong>UI</strong>: single-page app embedded in the hub binary. Virtualized list, no external
+  assets, all state in the URL.</li>
+</ul>
+<p>Full details, on-disk formats, wire protocol, and failure-mode table:
+<a href="ARCHITECTURE/">docs/ARCHITECTURE.md</a>.</p>
+<h2 id="quick-start">Quick start<a class="headerlink" href="#quick-start" title="Permanent link">&para;</a></h2>
+<p>Requirements: Kubernetes ≥ 1.26, Helm ≥ 3.8, a default StorageClass, containerd or
+CRI-O (legacy Docker works with one extra value).</p>
+<pre><code class="language-bash">helm install p10logs oci://ghcr.io/p10node/charts/p10logs \
+  --namespace p10logs --create-namespace \
+  --set global.clusterName=dev
+
+# hostPath volumes need the &quot;privileged&quot; Pod Security level in this namespace
+kubectl label ns p10logs pod-security.kubernetes.io/enforce=privileged --overwrite
+
+kubectl -n p10logs port-forward svc/p10logs-hub 8080:8080
+open http://localhost:8080
+</code></pre>
+<p>First sign-in is <code>admin</code> / <code>admin</code>; the hub then asks you to set a new password and keeps
+it hashed on its data volume. Prefer to manage it outside? Set
+<code>hub.auth.ui.basic.password</code> or <code>existingSecret</code> and no onboarding happens. For a public
+demo add <code>hub.auth.ui.basic.lockPassword=true</code>: the configured password is the only one
+accepted and nobody can change it from the UI.</p>
+<p>Within a few seconds the tree fills with every namespace and pod on the cluster,
+including logs that were already on disk before p10logs was installed (current plus
+rotated files, up to what kubelet kept).</p>
+<h2 id="multi-cluster">Multi-cluster<a class="headerlink" href="#multi-cluster" title="Permanent link">&para;</a></h2>
+<p><strong>Hub + spokes</strong> (default recommendation): install once with an Ingress in the central
+cluster, then install agents only in each other cluster:</p>
+<pre><code class="language-bash"># central
+helm install p10logs oci://ghcr.io/p10node/charts/p10logs -n p10logs --create-namespace \
+  --set global.clusterName=central \
+  --set hub.ingress.enabled=true \
+  --set 'hub.ingress.hosts[0].host=logs.example.com' \
+  --set 'hub.ingress.tls[0].secretName=p10logs-tls' \
+  --set 'hub.ingress.tls[0].hosts[0]=logs.example.com'
+
+TOKEN=$(kubectl -n p10logs get secret p10logs-ingest -o jsonpath='{.data.token}' | base64 -d)
+
+# each spoke
+helm install p10logs oci://ghcr.io/p10node/charts/p10logs -n p10logs --create-namespace \
+  --set global.clusterName=prod-eu-1 \
+  --set hub.enabled=false \
+  --set agent.hub.url=https://logs.example.com \
+  --set agent.hub.token=$TOKEN
+</code></pre>
+<p>Spokes need outbound HTTPS only. Serve the hub over HTTP/2 (any TLS ingress does) so
+several browser tabs can tail at once; HTTP/1.1 caps a browser at six connections per
+host. Agents compress before sending (text logs shrink
+5–10×) and spool to local disk during hub outages.</p>
+<p><strong>Per-cluster tokens</strong> (<code>hub.auth.clusterTokens</code>) stop a leaked spoke token from
+writing as another cluster. <strong>Federation</strong> (hub per cluster, one UI: <code>hub.federation.peers</code>)
+is described in <a href="MULTI_CLUSTER/">docs/MULTI_CLUSTER.md</a>; stream ids from a peer
+appear as <code>&lt;peer&gt;/&lt;id&gt;</code> and the tree shows which hub serves each cluster.</p>
+<h2 id="configuration">Configuration<a class="headerlink" href="#configuration" title="Permanent link">&para;</a></h2>
+<p>All configuration is Helm values. The important ones:</p>
+<table>
+<thead>
+<tr>
+<th>Value</th>
+<th>Default</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>global.clusterName</code></td>
+<td><code>default</code></td>
+<td>Label stamped on every line. Unique per hub.</td>
+</tr>
+<tr>
+<td><code>agent.enabled</code> / <code>hub.enabled</code></td>
+<td><code>true</code> / <code>true</code></td>
+<td>Topology switches. Spoke = <code>hub.enabled=false</code>.</td>
+</tr>
+<tr>
+<td><code>agent.hub.url</code>, <code>agent.hub.token</code></td>
+<td>in-cluster / generated</td>
+<td>Where agents push, and with what.</td>
+</tr>
+<tr>
+<td><code>agent.collect.excludeNamespaces</code></td>
+<td><code>[]</code></td>
+<td>Skip namespaces at the source (zero cost).</td>
+</tr>
+<tr>
+<td><code>agent.collect.excludeContainers</code></td>
+<td><code>[]</code></td>
+<td>e.g. <code>[istio-proxy]</code>.</td>
+</tr>
+<tr>
+<td><code>agent.enrich.enabled</code>, <code>.labels</code>, <code>.annotations</code></td>
+<td><code>false</code></td>
+<td>Attach selected pod labels/annotations via one node-scoped watch; then <code>label=app:api</code> works as a selector. Also adds <code>_owner</code> (<code>Deployment/api</code>, <code>CronJob/report</code>, …) so the UI groups pods by workload.</td>
+</tr>
+<tr>
+<td><code>agent.multiline.enabled</code></td>
+<td><code>false</code></td>
+<td>Join stack traces by start-pattern.</td>
+</tr>
+<tr>
+<td><code>agent.buffer.maxBytes</code></td>
+<td><code>256Mi</code></td>
+<td>Disk spool per node while hub is down.</td>
+</tr>
+<tr>
+<td><code>agent.rateLimit.linesPerSecondPerContainer</code></td>
+<td><code>0</code></td>
+<td>Cap a log-spamming pod.</td>
+</tr>
+<tr>
+<td><code>hub.storage.persistence.size</code></td>
+<td><code>50Gi</code></td>
+<td>PVC size.</td>
+</tr>
+<tr>
+<td><code>hub.storage.retention.maxAge</code></td>
+<td><code>168h</code></td>
+<td>Delete days older than this.</td>
+</tr>
+<tr>
+<td><code>hub.storage.retention.maxDiskBytes</code></td>
+<td><code>0</code> = 90 % of PVC</td>
+<td>Delete oldest days when exceeded.</td>
+</tr>
+<tr>
+<td><code>hub.storage.retention.overrides</code></td>
+<td><code>[]</code></td>
+<td>Per <code>&lt;cluster&gt;/&lt;namespace&gt;</code> glob, e.g. keep <code>prod/*</code> 30 d.</td>
+</tr>
+<tr>
+<td><code>hub.storage.objectStore.*</code></td>
+<td>off</td>
+<td>Copy sealed chunks to any S3-compatible bucket after <code>uploadAfter</code>; evict local copies first under disk pressure; cold reads are transparent.</td>
+</tr>
+<tr>
+<td><code>hub.auth.ui.mode</code></td>
+<td><code>basic</code></td>
+<td><code>none</code>, <code>basic</code>, or <code>oidc</code>.</td>
+</tr>
+<tr>
+<td><code>hub.auth.ui.basic.lockPassword</code></td>
+<td><code>false</code></td>
+<td>Demo hubs: the configured password cannot be changed from the UI (needs <code>password</code> or <code>existingSecret</code>).</td>
+</tr>
+<tr>
+<td><code>hub.auth.clusterTokens</code>, <code>hub.auth.roles</code></td>
+<td><code>[]</code></td>
+<td>Ingest tokens bound to clusters; viewer roles bound to cluster/namespace globs.</td>
+</tr>
+<tr>
+<td><code>hub.ingress.*</code> / <code>hub.httpRoute.*</code></td>
+<td>off</td>
+<td>Expose the hub.</td>
+</tr>
+<tr>
+<td><code>hub.federation.peers</code></td>
+<td><code>[]</code></td>
+<td>Other hubs to query, tail and export through this one.</td>
+</tr>
+<tr>
+<td><code>hub.limits.perCluster.bytesPerSecond</code></td>
+<td><code>0</code> = unlimited</td>
+<td>Throttle a noisy spoke cluster.</td>
+</tr>
+<tr>
+<td><code>hub.metrics.enabled</code></td>
+<td><code>false</code></td>
+<td>Prometheus endpoint. Off on purpose.</td>
+</tr>
+</tbody>
+</table>
+<p>See <a href="charts/p10logs/values.yaml">charts/p10logs/values.yaml</a> for everything, with
+comments.</p>
+<h3 id="gitops-argocd-flux">GitOps (ArgoCD, Flux)<a class="headerlink" href="#gitops-argocd-flux" title="Permanent link">&para;</a></h3>
+<p>Auto-generated secrets rely on Helm <code>lookup()</code>, which is empty when the chart is
+rendered with <code>helm template</code>. Create the ingest and UI secrets yourself and point
+<code>hub.auth.existingSecret</code>, <code>agent.hub.existingSecret</code>, and
+<code>hub.auth.ui.basic.existingSecret</code> at them, or the values change on every sync.
+Agents re-read the token file on <code>401</code>, so rotating a token never needs a restart.</p>
+<h3 id="legacy-docker-cri-dockerd-nodes">Legacy Docker / cri-dockerd nodes<a class="headerlink" href="#legacy-docker-cri-dockerd-nodes" title="Permanent link">&para;</a></h3>
+<pre><code class="language-bash">--set agent.hostPaths.docker=/var/lib/docker/containers
+</code></pre>
+<h2 id="using-the-ui">Using the UI<a class="headerlink" href="#using-the-ui" title="Permanent link">&para;</a></h2>
+<ul>
+<li><strong>Tree</strong> on the left: cluster → namespace → workload → pod → container. Pods are grouped
+  under their Deployment / StatefulSet / DaemonSet / Job / CronJob (from the agent's
+  <code>_owner</code> label when <code>agent.enrich.enabled</code>, otherwise guessed from the pod name) with a
+  kind badge, pod count and restart total; clicking a workload tails all of its
+  containers. Pods that no longer exist stay listed (greyed) until their logs age out;
+  the <strong>live</strong> toggle hides them. Under the search box: unselect all, expand / collapse
+  all, a namespace selector and workload-kind chips. Search matches pod, workload, kind
+  and label text.</li>
+<li><strong>Tail</strong>: click a container, or select several pods to interleave them by timestamp
+  with a colour per pod (globs such as <code>pod=api-*</code> are an API feature). Follow mode uses SSE; if a pod
+  logs faster than the per-client cap the server drops and shows a <code>dropped N lines</code>
+  marker rather than freezing the tab. Only visible rows are rendered; the tab keeps at
+  most 10 000 lines in memory and re-fetches older ones from the hub when you scroll up.</li>
+<li><strong>Time range</strong>: presets or absolute. Historic views page backwards from the newest
+  line.</li>
+<li><strong>Filter box</strong>, same grammar as the API <code>q</code> parameter:</li>
+</ul>
+<table>
+<thead>
+<tr>
+<th>Syntax</th>
+<th>Matches</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>error</code></td>
+<td>lines containing <code>error</code> (case-insensitive)</td>
+</tr>
+<tr>
+<td><code>!healthz</code></td>
+<td>lines not containing <code>healthz</code></td>
+</tr>
+<tr>
+<td><code>"user 42"</code></td>
+<td>exact phrase</td>
+</tr>
+<tr>
+<td><code>/timeout \d+ms/</code></td>
+<td>RE2 regex</td>
+</tr>
+<tr>
+<td><code>level=error</code></td>
+<td>JSON lines whose <code>level</code> field equals <code>error</code></td>
+</tr>
+<tr>
+<td><code>error !healthz level=error</code></td>
+<td>all terms must match</td>
+</tr>
+</tbody>
+</table>
+<ul>
+<li><strong>Export</strong> downloads the current view as text (the API also serves <code>format=ndjson</code>).
+  <strong>Permalink</strong> copies a URL with every setting.</li>
+</ul>
+<h2 id="http-api">HTTP API<a class="headerlink" href="#http-api" title="Permanent link">&para;</a></h2>
+<p>All endpoints are under the hub. UI auth applies (<code>Authorization: Bearer</code> also accepted
+for API tokens).</p>
+<table>
+<thead>
+<tr>
+<th>Method &amp; path</th>
+<th>Purpose</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>POST /api/v1/push</code></td>
+<td>Agent ingest. Bearer ingest token. zstd NDJSON body.</td>
+</tr>
+<tr>
+<td><code>GET /api/v1/streams?cluster=&amp;namespace=&amp;pod=&amp;since=</code></td>
+<td>List streams (pods/containers) with first/last timestamps and restart counts.</td>
+</tr>
+<tr>
+<td><code>GET /api/v1/query?…&amp;start=&amp;end=&amp;q=&amp;limit=&amp;dir=&amp;cursor=</code></td>
+<td>Historic lines, newest-first by default, paginated.</td>
+</tr>
+<tr>
+<td><code>GET /api/v1/tail?…&amp;q=</code></td>
+<td>Server-Sent Events live tail.</td>
+</tr>
+<tr>
+<td><code>GET /api/v1/export?…&amp;format=txt\|ndjson</code></td>
+<td>Streamed download.</td>
+</tr>
+<tr>
+<td><code>GET /api/v1/status</code></td>
+<td>Hub health, disk usage, ingest rate, one row per agent (node, last seen, lag, spool).</td>
+</tr>
+<tr>
+<td><code>GET /healthz</code>, <code>GET /readyz</code></td>
+<td>Probes.</td>
+</tr>
+<tr>
+<td><code>GET /metrics</code></td>
+<td>Only if <code>hub.metrics.enabled</code>.</td>
+</tr>
+</tbody>
+</table>
+<p>Selectors (<code>cluster</code>, <code>namespace</code>, <code>pod</code>, <code>container</code>) accept exact values or globs
+(<code>api-*</code>); <code>uid</code> pins one pod instance; <code>sid</code> selects stream ids from <code>/streams</code>;
+<code>label=key:value</code> (repeatable) matches enrichment labels. Timestamps are RFC 3339, unix seconds/millis/nanos, <code>now</code>, or relative (<code>-15m</code>, <code>-6h</code>, <code>-7d</code>, <code>-2w</code>). Query
+responses report <code>chunks</code> read, <code>skipped_chunks</code> excluded by bloom filters,
+<code>scanned_bytes</code>, <code>ms</code>, <code>truncated</code>, and <code>next</code> for the older page.</p>
+<p>Example:</p>
+<pre><code class="language-bash">curl -s -u admin:$PW 'http://localhost:8080/api/v1/query?namespace=payments&amp;pod=api-*&amp;start=-1h&amp;q=error+!healthz&amp;limit=200'
+</code></pre>
+<h2 id="storage-and-retention">Storage and retention<a class="headerlink" href="#storage-and-retention" title="Permanent link">&para;</a></h2>
+<ul>
+<li>Data lives in <code>/data</code> on the hub PVC: <code>days/&lt;YYYYMMDD&gt;/&lt;cluster&gt;/&lt;ns&gt;/&lt;pod-uid&gt;/&lt;container&gt;/*.chunk</code>
+  plus <code>index.sqlite</code>. Chunks are append-only and, once sealed, immutable.</li>
+<li>Disk usage is roughly <strong>raw × 0.1–0.2</strong> (zstd on text logs). 30 nodes producing
+  15 GB/day raw for 7 days need about 20 GB.</li>
+<li>Retention runs every minute: delete day directories older than <code>maxAge</code>, then
+  oldest days until under <code>maxDiskBytes</code>, always keeping today. Per-namespace overrides
+  delete just those sub-directories.</li>
+<li>Optional cold tier: sealed chunks are copied to an S3-compatible bucket (AWS S3,
+  MinIO, Cloudflare R2, Backblaze B2, GCS in interoperability mode) after
+  <code>uploadAfter</code>. Under disk pressure the hub evicts local copies of offloaded chunks
+  before it deletes any day. Queries fetch cold chunks into a bounded cache. Deleting
+  a day also deletes its objects. <code>--rebuild-index</code> lists the bucket, so a hub with an
+  empty PVC and the bucket recovers everything.</li>
+<li><code>p10logs-hub --check</code> verifies every chunk footer, open chunk, the WAL and the index
+  without changing anything and exits non-zero on problems.</li>
+<li>Backup = snapshot the PVC, or rely on the bucket. Restore = mount it, or start with
+  an empty PVC and run <code>--rebuild-index</code>.</li>
+</ul>
+<h2 id="what-survives-what">What survives what<a class="headerlink" href="#what-survives-what" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>Event</th>
+<th>Lines lost?</th>
+<th>Lines duplicated?</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Pod restarts / crashes</td>
+<td>no, previous restart's file was already shipped</td>
+<td>no</td>
+</tr>
+<tr>
+<td>Pod deleted</td>
+<td>no, agent drains the file before kubelet removes the directory</td>
+<td>no</td>
+</tr>
+<tr>
+<td>Agent pod restarts or upgrades</td>
+<td>no, resumes from checkpoint on hostPath</td>
+<td>no, hub dedups by offset</td>
+</tr>
+<tr>
+<td>Node reboots</td>
+<td>no, same checkpoint</td>
+<td>no</td>
+</tr>
+<tr>
+<td>Hub down &lt; buffer capacity</td>
+<td>no, spooled on nodes</td>
+<td>no</td>
+</tr>
+<tr>
+<td>Hub down &gt; buffer capacity</td>
+<td>oldest spooled batches dropped, a marker line is written</td>
+<td>no</td>
+</tr>
+<tr>
+<td>Hub crashes mid-write</td>
+<td>no, un-acked batches are resent</td>
+<td>no</td>
+</tr>
+<tr>
+<td>Pod logs faster than the agent reads for longer than kubelet keeps rotated files</td>
+<td>yes (default window ≈ 50 MiB per container)</td>
+<td>no</td>
+</tr>
+<tr>
+<td>PVC full</td>
+<td>ingest paused (503), agents spool, retention frees space</td>
+<td>no</td>
+</tr>
+</tbody>
+</table>
+<h2 id="security">Security<a class="headerlink" href="#security" title="Permanent link">&para;</a></h2>
+<ul>
+<li>Agent: <code>hostPath</code> read-only mounts of <code>/var/log/pods</code> (files are root-owned 0640, so
+  the agent runs as UID 0), read-only root filesystem, all capabilities dropped, no
+  <code>privileged</code>. The namespace needs the <code>privileged</code> Pod Security level solely because
+  of <code>hostPath</code>.</li>
+<li>Agent → hub: bearer token (generated on install, or yours), TLS via your Ingress,
+  optional private CA. Per-cluster tokens in v0.3.</li>
+<li>Hub UI/API: <code>basic</code> (default: login form with a session cookie; first run is
+  <code>admin</code>/<code>admin</code> followed by a forced password change, passwords stored as PBKDF2-SHA256
+  on the data volume, changeable in the UI; or a password from a Kubernetes secret,
+  optionally locked with <code>lockPassword</code> for demo hubs),
+  <code>oidc</code> (authorization-code flow with an email or domain allow-list, roles by user or
+  domain), or <code>none</code> if you front it with your own SSO proxy. HTTP Basic headers and
+  <code>hub.auth.apiTokens</code> bearer tokens work for scripts in any mode.</li>
+<li>Viewer roles (<code>hub.auth.roles</code>) scope reads: a role lists users (basic usernames or
+  OIDC emails), email domains, or its own API tokens, plus cluster and namespace globs.
+  Once any role exists, identities that match none are denied; global <code>apiTokens</code> stay
+  unrestricted. Federated queries carry the caller's scope to each peer through the
+  peer token's own role on that hub.</li>
+<li>Chart releases are signed with <a href="https://github.com/sigstore/cosign">cosign</a> (keyless,
+  GitHub Actions OIDC). Verify before installing:</li>
+</ul>
+<p><code>bash
+  cosign verify ghcr.io/p10node/charts/p10logs:&lt;version&gt; \
+    --certificate-identity-regexp='^https://github.com/p10node/p10logs/' \
+    --certificate-oidc-issuer=https://token.actions.githubusercontent.com</code></p>
+<h3 id="oidc">OIDC<a class="headerlink" href="#oidc" title="Permanent link">&para;</a></h3>
+<p>The hub is a standard OpenID Connect relying party (built on <code>coreos/go-oidc</code>), so any
+open-source provider works: Keycloak, Dex, Authentik, Zitadel, Kanidm, or a hosted one
+such as Google or Entra ID. Register a confidential client with redirect URI
+<code>https://&lt;hub-host&gt;/auth/callback</code>, put the client secret in a Kubernetes secret under
+the key <code>client-secret</code>, then:</p>
+<pre><code class="language-yaml">hub:
+  auth:
+    ui:
+      mode: oidc
+      oidc:
+        issuerUrl: https://keycloak.example.com/realms/main
+        clientId: p10logs
+        clientSecretRef: p10logs-oidc
+        allowedDomains: [example.com]      # or allowedEmails: [a@example.com]
+    publicUrl: https://logs.example.com   # only if your proxy hides the scheme
+</code></pre>
+<p>Sessions are HMAC-signed cookies valid for 12 hours; the signing key is generated at
+start (set <code>auth.sessionKeyFile</code> in <code>hub.yaml</code> to keep sessions across restarts).
+- Hub runs as non-root UID 65532, read-only root filesystem.
+- No component ever needs <code>pods/log</code>, <code>exec</code>, or write access to the Kubernetes API.
+  The only optional RBAC is <code>pods get/list/watch</code> for label enrichment.</p>
+<h2 id="resource-footprint">Resource footprint<a class="headerlink" href="#resource-footprint" title="Permanent link">&para;</a></h2>
+<p>p10logs is designed to be the cheapest thing that still persists logs. Measured with
+<code>bench/run.sh</code> on a laptop (Apple M1 Pro, local processes, ~180-byte JSON lines; full
+table and caveats in <a href="bench/RESULTS.md">bench/RESULTS.md</a>); reference numbers are from
+independent 2026 benchmarks (links above).</p>
+<table>
+<thead>
+<tr>
+<th></th>
+<th>p10logs (measured)</th>
+<th>Reference</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Agent, per node</td>
+<td>31 MiB RSS / 0.3 % of a core at 2 000 lines/s; 44 MiB / 3.4 % at 10 000 lines/s</td>
+<td>vlagent 28 MiB, Fluent Bit 78 MiB, Vector 154 MiB at 10 k lines/s</td>
+</tr>
+<tr>
+<td>Hub</td>
+<td>58 MiB / 2 % at 2 000 lines/s; 100 MiB / 7 % at 10 000 lines/s (ingest only, memtable budget 128 MiB max)</td>
+<td>VictoriaLogs 0.6–2 GiB, Loki 1.5–7 GiB, Elastic / ClickHouse ≥ 4 GB</td>
+</tr>
+<tr>
+<td>Disk</td>
+<td>raw ÷ 7.3–8.7 (zstd level 1, 256 KiB+ frames)</td>
+<td>Loki 501 GiB vs VictoriaLogs 318 GiB for the same 500 GB week</td>
+</tr>
+<tr>
+<td>Idle on a Linux node (kind)</td>
+<td>agent 18.5 MiB, hub 24 MiB</td>
+<td></td>
+</tr>
+<tr>
+<td>Images</td>
+<td>agent 16 MB, hub 23 MB (distroless static)</td>
+<td></td>
+</tr>
+<tr>
+<td>API-server load</td>
+<td>zero requests (one node-scoped watch if enrichment is on)</td>
+<td>Dozzle / kubetail: one long-lived stream per container per viewer</td>
+</tr>
+<tr>
+<td>Extra components</td>
+<td>none</td>
+<td>metrics-server, Grafana, Prometheus, object store, ClickHouse, JVM</td>
+</tr>
+</tbody>
+</table>
+<p>Why it stays small:</p>
+<ul>
+<li>The agent reads files sequentially from the page cache, keeps one reusable buffer per
+  batch, and never opens a Kubernetes API stream. Excluded namespaces cost nothing.</li>
+<li>The hub does one zstd frame append per batch and one <code>fdatasync</code> per second. There is
+  no inverted index, no compactor, no LSM merges; a bloom filter is built once when a
+  chunk is sealed.</li>
+<li>Live tail is one upstream subscription fanned out to N browsers with a per-client cap,
+  so a hundred people watching the same pod cost about the same as one.</li>
+<li>There is no metrics pipeline to scrape, store, or render. The <code>/metrics</code> endpoint is off
+  unless you enable it.</li>
+</ul>
+<p>Sizing guide (7-day retention):</p>
+<table>
+<thead>
+<tr>
+<th>Cluster</th>
+<th>Agents</th>
+<th>Hub</th>
+<th>PVC</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>5 nodes, ~1 GB/day</td>
+<td>5 × 30 MiB</td>
+<td>~150 MiB</td>
+<td>5 Gi</td>
+</tr>
+<tr>
+<td>30 nodes, ~15 GB/day</td>
+<td>30 × 40 MiB</td>
+<td>400–600 MiB</td>
+<td>20–30 Gi</td>
+</tr>
+<tr>
+<td>200 nodes, ~100 GB/day</td>
+<td>200 × 50 MiB</td>
+<td>1–2 GiB, ~1 core</td>
+<td>150–200 Gi, consider federation</td>
+</tr>
+</tbody>
+</table>
+<p>Where cost can still go if misused, and the knob that bounds it:</p>
+<table>
+<thead>
+<tr>
+<th>Situation</th>
+<th>Bound</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Wide regex search over many days</td>
+<td><code>hub.query.maxScanBytes</code>, <code>hub.query.maxConcurrent</code></td>
+</tr>
+<tr>
+<td>One pod logging thousands of lines per second</td>
+<td><code>agent.rateLimit.linesPerSecondPerContainer</code></td>
+</tr>
+<tr>
+<td>A noisy spoke cluster</td>
+<td><code>hub.limits.perCluster.bytesPerSecond</code></td>
+</tr>
+<tr>
+<td>Many tail clients</td>
+<td><code>hub.query.tail.maxClients</code>, <code>maxLinesPerSecondPerClient</code></td>
+</tr>
+<tr>
+<td>Hub outage</td>
+<td><code>agent.buffer.maxBytes</code> per node, then oldest batches dropped</td>
+</tr>
+</tbody>
+</table>
+<p>For comparison, a typical kube-prometheus-stack install runs at 2–4 GB before a single
+log line is stored; a Loki-plus-Grafana stack is in the same range. p10logs targets
+roughly 5–10× less for the "just pod logs" job.</p>
+<h2 id="roadmap">Roadmap<a class="headerlink" href="#roadmap" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>Version</th>
+<th>Scope</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>v0.1</strong> (done)</td>
+<td>Agent (discover, CRI + docker-json parse, rotation + <code>.gz</code> backfill, checkpoint, batch, zstd push, disk spool, rate limit, multiline, heartbeat). Hub (ingest, cursor dedup, crash-safe chunks, SQLite index + <code>--rebuild-index</code>, query, SSE tail with per-client cap, retention by age/size/namespace, basic + OIDC auth, API tokens, per-cluster rate limit, agents status). UI (tree, multi-pod tail, restart markers, time range, filter, export, permalinks, agents page). Helm chart.</td>
+</tr>
+<tr>
+<td><strong>v0.2</strong> (done)</td>
+<td>Label/annotation enrichment (one node-scoped watch, no client-go) and <code>label=</code> selectors. Trigram bloom filter per chunk (<code>skipped_chunks</code> in query stats). <code>values.schema.json</code>. GitHub Actions: CI (unit, local e2e, chart, kind) and release (multi-arch images + OCI chart to ghcr.io/p10node). Benchmark script and numbers (<code>bench/</code>).</td>
+</tr>
+<tr>
+<td><strong>v0.3</strong> (done)</td>
+<td>Federation, object-storage offload, per-cluster ingest tokens, viewer roles, Artifact Hub metadata, WAL + memtable storage (replaces the compression-dictionary idea: large frames make it unnecessary).</td>
+</tr>
+<tr>
+<td><strong>v1.0</strong> (done)</td>
+<td>Format and API freeze (<code>docs/FORMATS.md</code>), <code>--check</code>, Helm upgrade test on kind, docs site, changelog.</td>
+</tr>
+<tr>
+<td><strong>v1.1</strong> (done)</td>
+<td>Multi-node + multi-cluster kind environment (<code>make e2e-multi</code>) with demo workloads (<code>hack/demo/</code>), hub outage / spool / drain test, multiline timeout and size-flush fixes, <code>hub.service.nodePort</code>, <code>make images-tar</code>.</td>
+</tr>
+<tr>
+<td>next</td>
+<td>First production cluster (feedback round), HA hub (two replicas behind the WAL on shared storage), Windows nodes, OpenTelemetry log export.</td>
+</tr>
+</tbody>
+</table>
+<p>Non-goals stay non-goals: no metrics, no traces, no query language, no alerting.</p>
+<h2 id="development">Development<a class="headerlink" href="#development" title="Permanent link">&para;</a></h2>
+<pre><code>cmd/p10logs-agent, cmd/p10logs-hub   entry points
+internal/{cri,tail,ship,enrich,agent}                                           agent
+internal/{wal,chunk,bloom,index,store,s3,query,tailbus,federation,auth,api,hub}  hub
+internal/wire                        push wire format shared by both
+ui/                                  single-file vanilla JS console, embedded with go:embed
+charts/p10logs                       Helm chart (lint: make lint, render: make template)
+docs/                                ARCHITECTURE.md, MULTI_CLUSTER.md, FORMATS.md
+bench/                               load generator and published numbers
+</code></pre>
+<p>Go 1.26+, CGO disabled (<code>modernc.org/sqlite</code>, <code>klauspost/compress/zstd</code>,
+<code>coreos/go-oidc</code>; no client-go). Images are distroless static, linux/amd64 and
+linux/arm64, built by <code>.github/workflows/release.yml</code> on <code>v*</code> tags; CI runs unit tests,
+the local e2e, chart lint and the kind e2e on every PR.</p>
+<pre><code class="language-bash">make build           # bin/p10logs-agent, bin/p10logs-hub
+make test            # unit tests (CRI parser, tailer rotation, chunk recovery, store, query grammar)
+make e2e             # real agent + hub over a fake /var/log/pods tree, 11 scenarios (12 with Docker: S3 offload)
+make e2e-kind        # same on a single-node kind cluster with the chart and locally built images
+make e2e-multi       # 3-node hub cluster + spoke cluster + demo apps on kind; prints UI URL and password
+make demo            # apply hack/demo/ (JSON, crash loops, stack traces, 20 KiB lines, CronJob…) to the current context
+make images-tar      # dist/p10logs-images-&lt;ver&gt;.tar for nodes without registry access
+make run-hub         # hub on :8080, UI auth none, ingest token &quot;dev&quot;, data in ./data
+make package         # dist/p10logs-&lt;ver&gt;.tgz; before the first GitHub release install from this file
+                     # (helm install p10logs dist/p10logs-1.1.1.tgz) with images from `make images-tar`
+make run-agent       # agent tailing ./hack/fakepods into that hub
+make lint template   # helm
+make images          # multi-arch images via buildx
+bench/run.sh 2000    # agent + hub RSS/CPU at 2 000 lines/s (see bench/RESULTS.md)
+</code></pre>
+<p>To see the UI locally without a cluster, run <code>make run-hub</code> and <code>make run-agent</code>, then
+write CRI-format lines into <code>hack/fakepods/&lt;ns&gt;_&lt;pod&gt;_&lt;uid&gt;/&lt;container&gt;/0.log</code> and open
+http://localhost:8080.</p>
+<h2 id="faq">FAQ<a class="headerlink" href="#faq" title="Permanent link">&para;</a></h2>
+<p><strong>Why not just use VictoriaLogs?</strong> You can, and it is the lightest persistent backend
+with independent benchmarks. p10logs trades its query language and generality for a
+pod-centric UI, built-in auth, and one chart that covers many clusters with nothing
+else to install. It is also small enough to read in an afternoon.</p>
+<p><strong>Why not Loki?</strong> Loki 3.x monolithic runs at 1.5–7 GiB, needs Grafana, Promtail is
+end-of-life, and the simple-scalable mode was removed. Its label/chunk model is
+excellent at scale and overkill for "show me this pod's logs".</p>
+<p><strong>Does it need metrics-server, Prometheus, or Grafana?</strong> No.</p>
+<p><strong>Can I keep logs longer for some namespaces?</strong> Yes, <code>hub.storage.retention.overrides</code>.</p>
+<p><strong>Does the agent need the Kubernetes API?</strong> No. Only if you enable label enrichment,
+and then it watches only its own node's pods.</p>
+<p><strong>What about logs written before p10logs was installed?</strong> The agent reads every file
+from the beginning on first start, including the gzipped rotated files kubelet keeps,
+so you get whatever was still on disk (by default the current 10 MiB plus up to three
+rotated files per container).</p>
+<p><strong>Windows nodes?</strong> Not yet; it is on the roadmap after v1.0.</p>
+<p><strong>Can two hubs share a PVC for HA?</strong> No. Use one hub plus object-store offload and PVC
+snapshots, or federation for isolation.</p>
+<h2 id="license">License<a class="headerlink" href="#license" title="Permanent link">&para;</a></h2>
+<p>Copyright 2026 p10node. Apache-2.0, see <a href="LICENSE">LICENSE</a> and <a href="NOTICE">NOTICE</a>.</p>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": ".", "features": [], "search": "assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="assets/javascripts/bundle.d7400e89.min.js"></script>
+      
+    
+  </body>
+</html>

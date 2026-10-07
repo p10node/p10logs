@@ -1,0 +1,1710 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+      
+      
+        <link rel="canonical" href="https://p10node.github.io/p10logs/ARCHITECTURE/">
+      
+      
+        <link rel="prev" href="..">
+      
+      
+        <link rel="next" href="../MULTI_CLUSTER/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.7">
+    
+    
+      
+        <title>Architecture - p10logs</title>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/stylesheets/main.ec1eaa64.min.css">
+      
+        
+        <link rel="stylesheet" href="../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="slate" data-md-color-primary="teal" data-md-color-accent="indigo">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#p10logs-architecture" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href=".." title="p10logs" class="md-header__button md-logo" aria-label="p10logs" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            p10logs
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Architecture
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="" data-md-color-scheme="slate" data-md-color-primary="teal" data-md-color-accent="indigo"  aria-hidden="true"  type="radio" name="__palette" id="__palette_0">
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/p10node/p10logs" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    GitHub
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href=".." title="p10logs" class="md-nav__button md-logo" aria-label="p10logs" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    p10logs
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/p10node/p10logs" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M439.6 236.1 244 40.5c-5.4-5.5-12.8-8.5-20.4-8.5s-15 3-20.4 8.4L162.5 81l51.5 51.5c27.1-9.1 52.7 16.8 43.4 43.7l49.7 49.7c34.2-11.8 61.2 31 35.5 56.7-26.5 26.5-70.2-2.9-56-37.3L240.3 199v121.9c25.3 12.5 22.3 41.8 9.1 55-6.4 6.4-15.2 10.1-24.3 10.1s-17.8-3.6-24.3-10.1c-17.6-17.6-11.1-46.9 11.2-56v-123c-20.8-8.5-24.6-30.7-18.6-45L142.6 101 8.5 235.1C3 240.6 0 247.9 0 255.5s3 15 8.5 20.4l195.6 195.7c5.4 5.4 12.7 8.4 20.4 8.4s15-3 20.4-8.4l194.7-194.7c5.4-5.4 8.4-12.8 8.4-20.4s-3-15-8.4-20.4"/></svg>
+  </div>
+  <div class="md-source__repository">
+    GitHub
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href=".." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Architecture
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Architecture
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#1-data-flow" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. Data flow
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#2-agent" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. Agent
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="2. Agent">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#21-discovery" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.1 Discovery
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#22-tailing" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.2 Tailing
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#23-checkpointing-positions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.3 Checkpointing (positions)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#24-batching-and-shipping" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.4 Batching and shipping
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#25-disk-buffer" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.5 Disk buffer
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#26-enrichment-optional" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.6 Enrichment (optional)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#27-multiline-optional" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.7 Multiline (optional)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#28-resource-discipline" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.8 Resource discipline
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#3-hub" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. Hub
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="3. Hub">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#31-storage-layout" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.1 Storage layout
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#32-write-path-wal-and-memtables" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.2 Write path: WAL and memtables
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#33-chunk-format" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.3 Chunk format
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#33b-object-storage" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.3b Object storage
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#34-index" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.4 Index
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#35-query-execution" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.5 Query execution
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#36-live-tail" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.6 Live tail
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#37-retention" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.7 Retention
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#38-federation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.8 Federation
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#39-ingest-limits" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.9 Ingest limits
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#310-auth" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.10 Auth
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#311-ui" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.11 UI
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#4-failure-modes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4. Failure modes
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#5-sizing" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5. Sizing
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#6-test-strategy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6. Test strategy
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#7-repository-layout" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        7. Repository layout
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../MULTI_CLUSTER/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Multi-cluster
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../FORMATS/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    On-disk formats
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../CHANGELOG/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Changelog
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#1-data-flow" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. Data flow
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#2-agent" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. Agent
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="2. Agent">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#21-discovery" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.1 Discovery
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#22-tailing" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.2 Tailing
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#23-checkpointing-positions" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.3 Checkpointing (positions)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#24-batching-and-shipping" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.4 Batching and shipping
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#25-disk-buffer" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.5 Disk buffer
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#26-enrichment-optional" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.6 Enrichment (optional)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#27-multiline-optional" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.7 Multiline (optional)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#28-resource-discipline" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.8 Resource discipline
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#3-hub" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. Hub
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="3. Hub">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#31-storage-layout" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.1 Storage layout
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#32-write-path-wal-and-memtables" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.2 Write path: WAL and memtables
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#33-chunk-format" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.3 Chunk format
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#33b-object-storage" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.3b Object storage
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#34-index" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.4 Index
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#35-query-execution" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.5 Query execution
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#36-live-tail" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.6 Live tail
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#37-retention" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.7 Retention
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#38-federation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.8 Federation
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#39-ingest-limits" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.9 Ingest limits
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#310-auth" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.10 Auth
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#311-ui" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.11 UI
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#4-failure-modes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4. Failure modes
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#5-sizing" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5. Sizing
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#6-test-strategy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6. Test strategy
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#7-repository-layout" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        7. Repository layout
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<h1 id="p10logs-architecture">p10logs architecture<a class="headerlink" href="#p10logs-architecture" title="Permanent link">&para;</a></h1>
+<p>Deep dive for contributors. The README covers <em>what</em> and <em>why</em>; this covers <em>how</em>.</p>
+<h2 id="1-data-flow">1. Data flow<a class="headerlink" href="#1-data-flow" title="Permanent link">&para;</a></h2>
+<pre><code> node                                   hub (StatefulSet, 1 replica, PVC)
+ ┌─────────────────────────────┐        ┌──────────────────────────────────────┐
+ │ kubelet/CRI writes          │        │  POST /api/v1/push  (bearer token)   │
+ │ /var/log/pods/&lt;ns&gt;_&lt;pod&gt;_   │        │        │                             │
+ │   &lt;uid&gt;/&lt;ctr&gt;/&lt;n&gt;.log       │        │        ▼                             │
+ │        │                    │  zstd  │  auth → dedup(cursor) → router       │
+ │        ▼                    │ NDJSON │        │                             │
+ │ p10logs-agent (DaemonSet)   │ ─────► │        ▼                             │
+ │  discover → tail → parse    │ HTTP/1 │  WAL fsync → ack → memtable          │
+ │  → batch → ship             │        │        │             │               │
+ │  ↕ positions.json (hostPath)│        │  frame → open chunk  ├─► live bus ──► SSE /tail
+ │  ↕ disk buffer (hostPath)   │        │  seal @4MiB/5min     │               │
+ └─────────────────────────────┘        │  index.sqlite ◄──────┘               │
+                                        │  retention loop (age, disk cap)      │
+                                        │  GET /api/v1/query|streams|export    │
+                                        │  embedded UI (/)                     │
+                                        └──────────────────────────────────────┘
+</code></pre>
+<p>Nothing in this path touches the Kubernetes API server. The agent learns
+<code>namespace / pod / uid / container / restart-count</code> from the file path alone.</p>
+<h2 id="2-agent">2. Agent<a class="headerlink" href="#2-agent" title="Permanent link">&para;</a></h2>
+<p>Single static Go binary, ~15 MB image (distroless/static), runs as a DaemonSet.</p>
+<h3 id="21-discovery">2.1 Discovery<a class="headerlink" href="#21-discovery" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Scan <code>/var/log/pods</code> every 2 s (plain directory listing, no inotify dependency) for
+  <code>&lt;ns&gt;_&lt;pod&gt;_&lt;uid&gt;/&lt;container&gt;/&lt;restart&gt;.log</code>. A new file is picked up within one scan;
+  an open file is polled every 250 ms once at EOF.</li>
+<li>Parse path with a fixed regex; no API calls.</li>
+<li>Filters (<code>collect.includeNamespaces</code> / <code>excludeNamespaces</code> / <code>excludeContainers</code>) are
+  applied here, so excluded streams cost nothing.</li>
+<li>Self-exclusion: the agent's own pod (<code>POD_NAMESPACE</code>/<code>POD_NAME</code> env) is skipped unless
+  <code>collect.self=true</code>.</li>
+</ul>
+<h3 id="22-tailing">2.2 Tailing<a class="headerlink" href="#22-tailing" title="Permanent link">&para;</a></h3>
+<p>Per file identity <code>(path, inode, first line)</code>, one tailer goroutine:</p>
+<ul>
+<li>Open, seek to checkpointed offset (or 0 if new; <strong>never</strong> "end" because we want the
+  backlog of a container that was already running before the agent started).</li>
+<li>Read in 64 KiB blocks, split lines, parse CRI format:
+  <code>&lt;RFC3339Nano ts&gt; &lt;stdout|stderr&gt; &lt;F|P&gt;[:tags] &lt;payload&gt;</code>.
+  <code>P</code> (partial) lines are concatenated, per <code>(file, stream)</code>, until an <code>F</code> arrives; the
+  merged line keeps the timestamp of the first chunk (same rule as kubelet's
+  <code>parseCRILog</code>). containerd splits at <code>max_container_log_line_size</code> = 16 384 bytes;
+  CRI-O/conmon emits <code>P</code> for any 8 KiB read without a newline. Merged size is capped at
+  1 MiB (then force-flushed) so a pathological writer cannot grow memory.</li>
+<li>Legacy docker/cri-dockerd nodes: <code>/var/log/pods/…/&lt;n&gt;.log</code> is a symlink into
+  <code>/var/lib/docker/containers/&lt;id&gt;/&lt;id&gt;-json.log</code> (<code>{"log","stream","time"}</code> JSON). Set
+  <code>agent.hostPaths.docker</code> so the symlink resolves; the parser auto-detects the format
+  from the first byte (<code>{</code> → docker JSON, digit → CRI).</li>
+<li>Rotation handling (kubelet <code>container_log_manager</code>, checked every
+  <code>containerLogMonitorInterval</code>=10 s): when <code>0.log</code> ≥ <code>containerLogMaxSize</code> (10 Mi)
+  kubelet renames it to <code>0.log.&lt;YYYYMMDD-HHMMSS&gt;</code> and asks the runtime to reopen the
+  same path → <strong>same path, new inode</strong>. Older rotated files are gzipped on a later
+  pass and only <code>containerLogMaxFiles - 2</code> of them are kept (default 5 → 3). The tailer
+  therefore keys its state by <code>(path, inode, first line)</code>, keeps draining the old inode
+  to EOF, then switches to the new one. Truncation (size &lt; offset) ends the tailer and the
+  discoverer starts a new one keyed by the new first line, so the hub sees a new file.</li>
+<li>Backfill: when a container directory is seen for the <strong>first time</strong> (fresh install,
+  or a node the agent never ran on), kubelet has usually already gzipped the rotated
+  files, so the agent also reads <code>&lt;n&gt;.log.&lt;ts&gt;.gz</code> (gzip stream, oldest first, low
+  priority, never checkpointed by offset but marked done by name). This is what makes
+  "install p10logs and see the last few hours" work instead of only the current 10 MiB.
+  <code>.gz</code> files that appear later are ignored: their content was already read live.</li>
+<li>Restarted container → new file <code>1.log</code>, <code>2.log</code>, … → new tailer, same stream key
+  but with <code>restart</code> attribute, so the UI can show restart boundaries. Kubelet GC keeps
+  only the current + one previous restart file by default, which is why persisting in
+  the hub matters.</li>
+<li>Pod deleted → kubelet GC removes the whole <code>&lt;ns&gt;_&lt;pod&gt;_&lt;uid&gt;</code> directory once the pod
+  is gone from the API. The tailer holds its fd, drains to EOF, flushes, then closes.</li>
+</ul>
+<h3 id="23-checkpointing-positions">2.3 Checkpointing (positions)<a class="headerlink" href="#23-checkpointing-positions" title="Permanent link">&para;</a></h3>
+<p><code>&lt;state&gt;/positions.json</code>: one JSON object, rewritten atomically (temp file + rename)
+once per second when dirty, so a crash leaves either the old or the new file, never a
+torn one.</p>
+<pre><code>key   = &quot;&lt;path&gt;@&lt;inode&gt;@&lt;fnv64 of the first line&gt;&quot;   (gz backfill files: the file name)
+        # the first-line hash matters: kubelet deletes a rotated file once it is gzipped and the
+        # kernel reuses the inode for the next 0.log; with &quot;&lt;path&gt;@&lt;inode&gt;&quot; alone the new file
+        # inherited the old checkpoint and the hub's cursor, and every new line was dropped as a
+        # duplicate until the file outgrew the old one (never, at 10 MiB rotation). A legacy
+        # &quot;&lt;path&gt;@&lt;inode&gt;&quot; entry is adopted once by the first agent that sees the new format.
+value = { offset, inode, done, seen }
+</code></pre>
+<p><code>offset</code> always points at the start of a complete <strong>logical</strong> line: it advances only
+past an <code>F</code> record (never between <code>P</code> chunks) and, with multiline enabled, only past a
+flushed multiline group. It is advanced only when the batch containing the line is
+<strong>durable elsewhere</strong>: acknowledged by the hub, or written to the disk spool (§2.5). A
+restart therefore re-reads at most the last un-acked batch, and the hub's cursor dedup
+(§3.2) drops those lines again. Net effect: exactly-once.</p>
+<ul>
+<li>The key includes the full path (<code>&lt;uid&gt;/&lt;container&gt;/&lt;restart&gt;.log</code>), which kubelet never
+  reuses for different content except by truncating in place (CRI-O <code>log_size_max</code>,
+  cri-dockerd); that case is caught by a size check on open and on every poll
+  (size &lt; offset → start from 0). There is no content fingerprint.</li>
+<li>A corrupt checkpoint file is treated as empty rather than refusing to start; dedup
+  covers the re-read.</li>
+<li>Entries not seen for 24 h are purged on save.</li>
+</ul>
+<h3 id="24-batching-and-shipping">2.4 Batching and shipping<a class="headerlink" href="#24-batching-and-shipping" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Lines grouped by stream key; batch flushed when <code>batch.maxBytes</code>, <code>batch.maxLines</code>, or
+  <code>batch.flushInterval</code> is hit (whichever first).</li>
+<li>Wire format: NDJSON, zstd-compressed (<code>Content-Encoding: zstd</code>), one HTTP/1.1
+  keep-alive connection per agent, HTTP/2 when the hub is behind TLS.</li>
+</ul>
+<pre><code>POST /api/v1/push
+Authorization: Bearer &lt;token&gt;
+X-P10-Cluster: prod-eu
+X-P10-Node: ip-10-0-1-23
+X-P10-Agent: 0.1.0
+Content-Type: application/x-ndjson
+Content-Encoding: zstd
+
+{&quot;k&quot;:&quot;kube-system/coredns-7d8b/…uid…/coredns/0&quot;,&quot;f&quot;:&quot;…uid…/coredns/0.log@inode@firstlinehash&quot;,&quot;o&quot;:[10240,12288]}
+{&quot;t&quot;:1727683200123456789,&quot;s&quot;:&quot;o&quot;,&quot;m&quot;:&quot;[INFO] plugin/reload: Running configuration…&quot;}
+{&quot;t&quot;:1727683200123999000,&quot;s&quot;:&quot;e&quot;,&quot;m&quot;:&quot;[ERROR] plugin/errors: 2 example.com. A: dial tcp…&quot;}
+{&quot;k&quot;:&quot;…next stream…&quot;,&quot;f&quot;:&quot;…&quot;,&quot;o&quot;:[0,4096]}
+…
+</code></pre>
+<ul>
+<li>A <code>k</code> line opens a stream section: <code>k</code> = stream key, <code>f</code> = file identity,
+  <code>o</code> = <code>[startOffset, endOffset)</code> of the bytes this batch covers. Optional
+  <code>"end":true</code> marks the stream as finished (file/directory removed by kubelet → pod
+  gone); the hub uses it for the live/gone marker instead of asking the API server.</li>
+<li>Heartbeat: every <code>heartbeatInterval</code> (10 s) the agent pushes an empty batch whose
+  headers carry <code>X-P10-Agent-Stats: files=&lt;n&gt;;lag_bytes=&lt;n&gt;;spool_bytes=&lt;n&gt;;dropped=&lt;n&gt;</code>.
+  The hub keeps an <code>agents</code> table (cluster, node, version, last_seen, stats) shown on
+  the UI "Agents" page and at <code>/api/v1/status</code>, so "node X stopped shipping 20 min
+  ago" is visible without a metrics stack.</li>
+<li><code>s</code> = <code>o</code>/<code>e</code> (stdout/stderr). Optional <code>"l":{…}</code> on the <code>k</code> line carries enrichment
+  labels when <code>enrich.enabled</code>.</li>
+<li>Hub answers <code>204</code> (all accepted), <code>202</code> (accepted, some ranges deduped), <code>413</code>
+  (batch too large: dropped and logged), <code>429</code> with <code>Retry-After</code> (per-cluster limit),
+  <code>401</code>/<code>403</code> (re-read the token file). Anything but 2xx/413: three quick retries, then
+  the batch goes to the disk spool and the shipper backs off 1 s → 30 s.</li>
+</ul>
+<h3 id="25-disk-buffer">2.5 Disk buffer<a class="headerlink" href="#25-disk-buffer" title="Permanent link">&para;</a></h3>
+<p>When the hub is unreachable, batches (already zstd) are written to
+<code>&lt;state&gt;/buffer/&lt;seq&gt;.zst</code> (temp file + rename) and count as acknowledged. On reconnect
+the buffer drains oldest-first, and new batches queue behind it so ordering is kept.
+When <code>buffer.maxBytes</code> is exceeded, the oldest files are deleted; the drop count is
+reported in the heartbeat stats, on the agent's <code>/status</code> endpoint and on the hub's
+"Agents" page.</p>
+<h3 id="26-enrichment-optional">2.6 Enrichment (optional)<a class="headerlink" href="#26-enrichment-optional" title="Permanent link">&para;</a></h3>
+<p>One list + watch per agent against <code>/api/v1/pods?fieldSelector=spec.nodeName=$NODE</code>,
+done with plain <code>net/http</code> and the mounted service-account token (no client-go, no
+extra 30 MB in the binary). Only the configured label/annotation keys are kept, per
+pod UID. They travel on the section header (<code>"l":{…}</code>), are stored on the stream row
+(<code>streams.labels</code>, JSON) and inside every frame's meta and the chunk footer, so
+<code>--rebuild-index</code> restores them. Deleted pods stay in the cache for two minutes so
+their last lines are still labelled. Selector: <code>label=key:value</code> on every read API.</p>
+<h3 id="27-multiline-optional">2.7 Multiline (optional)<a class="headerlink" href="#27-multiline-optional" title="Permanent link">&para;</a></h3>
+<p>Per-container state machine: a line that does <strong>not</strong> match <code>multiline.startPattern</code>
+is appended to the previous line (<code>\n</code> joined). A group is emitted when the next start
+line arrives, when it reaches <code>maxLines</code>, when no line has joined it for <code>timeout</code>
+(checked at every batch interval), or when its file disappears. Size-triggered batch
+flushes leave the open group pending, so a trace is never split by batching. Applied
+after CRI partial reassembly. The default start pattern covers ISO timestamps, JSON,
+<code>[...]</code>, <code>LEVEL</code>, klog <code>I1004</code>, logfmt <code>time=</code> and IPv4-first access logs.</p>
+<h3 id="28-resource-discipline">2.8 Resource discipline<a class="headerlink" href="#28-resource-discipline" title="Permanent link">&para;</a></h3>
+<ul>
+<li><code>GOMEMLIMIT</code> is set by the chart from the container memory limit (agent and hub).</li>
+<li>One goroutine per tailed file, sequential 64 KiB buffered reads, 250 ms poll at EOF.</li>
+<li>No per-line allocation of maps; lines are appended to a reusable <code>[]byte</code> batch buffer.</li>
+<li>Per-container <code>rateLimit.linesPerSecondPerContainer</code> (token bucket) protects the hub
+  from a single log-spamming pod; dropped counts are reported inline.</li>
+<li>Backpressure is explicit: at most <code>ship.maxInFlight</code> batches are queued for the
+  shipper; when it is behind, the batcher blocks and every tailer <strong>pauses</strong> instead of
+  reading files into memory (Vector's 0.55 regression, where backlog was read into RAM, is the failure
+  this avoids). Files on disk are the buffer; kubelet rotation bounds the loss window.</li>
+</ul>
+<h2 id="3-hub">3. Hub<a class="headerlink" href="#3-hub" title="Permanent link">&para;</a></h2>
+<h3 id="31-storage-layout">3.1 Storage layout<a class="headerlink" href="#31-storage-layout" title="Permanent link">&para;</a></h3>
+<pre><code>/data
+├── index.sqlite               # streams + chunks catalog (SQLite, WAL mode); derived state
+├── wal/NNNNNN.wal             # write-ahead log segments, fsynced before every ack
+├── days/
+│   └── 20260930/                                   # UTC day partition
+│       └── &lt;cluster&gt;/&lt;namespace&gt;/&lt;pod-uid&gt;/&lt;container&gt;/
+│           ├── &lt;unixnano&gt;.chunk    # sealed, immutable
+│           ├── &lt;unixnano&gt;.chunk
+│           └── &lt;unixnano&gt;.open     # currently appended
+└── cache/                     # local copies of chunks fetched back from object storage
+</code></pre>
+<p>A <strong>stream</strong> is <code>(cluster, namespace, pod, pod_uid, container)</code>. Pod name is kept for the
+UI; <code>pod_uid</code> makes a recreated pod with the same name a new stream.</p>
+<p>Chunks live under the UTC day of their <strong>first</strong> line. Day partitioning (same idea as
+VictoriaLogs <code>partitions/YYYYMMDD</code> and Loki's 24 h index periods) makes age-based
+retention a directory removal and keeps the index small. A chunk can spill at most
+<code>segment.maxOpenAge</code> (5 min) past midnight; queries use the index's <code>min_ts/max_ts</code>,
+not the directory, so this is invisible, and deleting a day removes at most those
+5 minutes of the following day.</p>
+<h3 id="32-write-path-wal-and-memtables">3.2 Write path: WAL and memtables<a class="headerlink" href="#32-write-path-wal-and-memtables" title="Permanent link">&para;</a></h3>
+<pre><code>push ──► WAL append + fdatasync ──► cursor ──► memtable[stream] ──► 204 to agent
+                                                    │
+                     ≥ 256 KiB or ≥ 30 s idle ──────┴──► one zstd frame appended to the
+                                                          stream's open chunk (+ bloom)
+WAL segment ≥ 64 MiB ──► flush every memtable, start a new segment, delete old ones
+</code></pre>
+<p>A push is acknowledged once its WAL record is on disk, so the agent may advance its
+checkpoint. Lines then wait in memory until a stream has enough of them to make a
+frame worth compressing; a quiet pod that logs once a minute gets one frame per
+30 s window instead of one per push, which is what keeps disk usage at raw ÷ 5–8
+regardless of how chatty a pod is. Live tail is served from the push path directly,
+so buffering adds no latency there. Queries read memtables alongside chunks.</p>
+<p>Every WAL record carries a global sequence number; every frame records the highest
+sequence it contains (<code>w</code>) and the stream row keeps the highest flushed one
+(<code>streams.wseq</code>). On startup the hub recovers open chunks, loads those marks, and
+replays the WAL skipping records at or below a stream's mark: no line is lost, none
+is duplicated, whether the crash happened before or after a flush. Memory for the
+memtables is bounded (<code>memtable.maxBytes</code>, largest streams flush first) and the WAL
+is bounded by its segment size.</p>
+<h3 id="33-chunk-format">3.3 Chunk format<a class="headerlink" href="#33-chunk-format" title="Permanent link">&para;</a></h3>
+<p>Append-only file made of independent <strong>zstd frames</strong> (one per flush), plus a footer:</p>
+<pre><code>frame   = { magic u32, metaLen u32, payLen u32, crc32 u32,
+            meta: { cluster, key, file_id, [start, end), node, restart, labels, wseq,
+                    end_of_stream, min_ts, max_ts, count },
+            zstd(payload) }
+payload = repeated { u64 ts_nanos, u8 stream, u32 len, bytes msg }
+footer  = { v, cluster, key, restart, labels, wseq, last cursor, min_ts, max_ts,
+            lines, uncompressed_bytes, frame_table: [ { off, len, min, max, c } … ],
+            bloom: 64 KiB trigram bloom (k=4) over lowercased tokens [a-z0-9_]+ }
+</code></pre>
+<ul>
+<li>Sealing = write the footer and rename <code>.open</code> → <code>.chunk</code>. Sealed chunks are never
+  modified, which makes retention a directory removal and object-storage offload a
+  plain copy.</li>
+<li>The frame table lets a time-range query skip frames without decompressing them.</li>
+<li>The bloom filter is built over <strong>trigrams of tokens</strong> while the chunk is open (and
+  rebuilt from frames on recovery), so it is sound for the grammar's substring
+  semantics: if <code>error</code> occurs anywhere inside a token, every trigram of <code>error</code> is in
+  the filter. A query skips a chunk when any positive word/phrase term has a trigram
+  the filter lacks. Terms shorter than 3 token characters and regexes cannot be
+  decided and fall back to a scan. Cost: 64 KiB per chunk (~1.5 % of a 4 MiB chunk),
+  ~1 % false positives at 50 k distinct trigrams.</li>
+<li>Readers validate CRCs frame by frame and truncate an <code>.open</code> chunk at the first bad
+  frame; stream identity and cursors are inside every frame, so the index is always
+  re-derivable (<code>--rebuild-index</code>).</li>
+</ul>
+<h3 id="33b-object-storage">3.3b Object storage<a class="headerlink" href="#33b-object-storage" title="Permanent link">&para;</a></h3>
+<p>With <code>objectStore</code> on, a background loop copies sealed chunks whose newest line is
+older than <code>uploadAfter</code> to the bucket (key = path relative to the data dir) and marks
+them <code>remote</code>. Retention evicts local copies of remote chunks, oldest first, before it
+deletes any day. A query that meets an evicted chunk fetches it into <code>cache/</code> (bounded
+by <code>cacheBytes</code>, LRU by access time). Deleting a day deletes its objects.
+<code>--rebuild-index</code> lists the bucket and reads footers with ranged GETs, so a hub with an
+empty PVC and the bucket recovers its whole catalog. The client is ~300 lines of SigV4
+(<code>internal/s3</code>), tested against an in-memory fake and MinIO.</p>
+<h3 id="34-index">3.4 Index<a class="headerlink" href="#34-index" title="Permanent link">&para;</a></h3>
+<p>SQLite (pure-Go <code>modernc.org/sqlite</code>, WAL mode, <code>synchronous=NORMAL</code>, one writer):</p>
+<pre><code class="language-sql">streams(id PK, cluster, ns, pod, uid, ctr, node, restarts, first_ts, last_ts, ended,
+        labels, wseq,   UNIQUE(cluster, ns, pod, uid, ctr))
+chunks (id PK, stream_id, path UNIQUE, day, min_ts, max_ts, lines, bytes, remote, local)
+cursors(stream_id, file, end_off,   PRIMARY KEY(stream_id, file))
+</code></pre>
+<p>Columns added after v0.1 (<code>labels</code>, <code>wseq</code>, <code>remote</code>, <code>local</code>) are created with
+<code>ALTER TABLE … ADD COLUMN</code> at startup, so an old index opens under a new hub.
+Everything is small: 10 000 streams × 500 chunks each is a few tens of MB. The
+<code>/streams</code> tree is built from this table on every call (the UI refreshes it every 30 s).
+The index is never the source of truth: <code>--rebuild-index</code> recreates it from chunk
+footers, frame meta, the WAL and, with offload on, the bucket listing.</p>
+<h3 id="35-query-execution">3.5 Query execution<a class="headerlink" href="#35-query-execution" title="Permanent link">&para;</a></h3>
+<pre><code>GET /api/v1/query?cluster=prod-eu&amp;namespace=payments&amp;pod=api-*&amp;container=app
+    &amp;start=2026-09-30T10:00:00Z&amp;end=now&amp;q=error+!healthz+&quot;user 42&quot;+/timeout\s+\d+ms/
+    &amp;limit=500&amp;dir=backward&amp;cursor=…
+</code></pre>
+<ol>
+<li>Resolve streams from the index (glob on <code>pod</code>, exact on the rest).</li>
+<li>Select chunks whose <code>[min_ts, max_ts]</code> intersects <code>[start, end]</code>.</li>
+<li>If <code>q</code> has positive literal terms, drop chunks whose trigram bloom says "absent"
+   (reported as <code>skipped_chunks</code>).</li>
+<li>Open remaining chunks newest-first, use the frame table to seek, decompress frame,
+   apply filter (<code>term</code>, <code>!term</code>, <code>"phrase"</code>, <code>/regex/</code>, <code>key=value</code> for JSON lines),
+   emit until <code>limit</code>. Return an opaque <code>cursor</code> for the next page.</li>
+<li>Hard stops: <code>query.maxScanBytes</code> (uncompressed bytes decoded) and <code>query.timeout</code>.
+   The response tells the UI it was truncated so it can narrow the range.</li>
+</ol>
+<p>Cost model: a query over one pod for the last hour typically touches 1–3 chunks; a
+cluster-wide <code>error</code> search over 24 h touches every chunk not excluded by bloom, which
+is why bloom filters exist and why <code>maxScanBytes</code> is a hard limit.</p>
+<h3 id="36-live-tail">3.6 Live tail<a class="headerlink" href="#36-live-tail" title="Permanent link">&para;</a></h3>
+<pre><code>GET /api/v1/tail?cluster=…&amp;namespace=…&amp;pod=…&amp;q=…       (Server-Sent Events)
+</code></pre>
+<ul>
+<li>The ingest path publishes each accepted batch onto an in-process bus keyed by
+  <code>stream_id</code>. Subscribers register a selector (same fields as <code>/query</code>).</li>
+<li>Fan-out is <strong>one upstream, many subscribers</strong>: N browsers tailing the same pod cost
+  one filter evaluation and N small writes.</li>
+<li>Per-client output is batched every 100 ms and capped at
+  <code>query.tail.maxLinesPerSecondPerClient</code>; overflow is dropped <strong>on the server</strong> and
+  reported as an inline <code>{"dropped": n}</code> event, so a spammy pod can never freeze the tab.</li>
+<li>SSE (not WebSocket) because it is one-way, proxy-friendly, the browser reconnects by
+  itself, and it needs no extra ingress config. A comment ping every 15 s keeps idle
+  proxies from closing the stream; the subscriber's stream set is refreshed every 5 s so
+  pods created after the tail started are included.</li>
+</ul>
+<h3 id="37-retention">3.7 Retention<a class="headerlink" href="#37-retention" title="Permanent link">&para;</a></h3>
+<p>Loop every 60 s:</p>
+<ol>
+<li>Age: delete whole day directories older than the default <code>maxAge</code> (one <code>rm -rf</code>,
+   then a prefix delete in the index). For per-namespace overrides, delete the matching
+   <code>&lt;cluster&gt;/&lt;namespace&gt;</code> sub-directories inside each remaining day that is older than
+   the override's <code>maxAge</code>.</li>
+<li>Size: if total bytes &gt; <code>maxDiskBytes</code> (default 90 % of the PVC), delete the oldest
+   day directories until under the limit, but always keep the current day (so a cap
+   that is too small degrades to "today only", never to zero). Never touch <code>.open</code>.</li>
+<li>Delete stream rows with zero chunks and <code>last_ts</code> older than 24 h (UI still shows
+   recently-gone pods for a day).</li>
+<li>With object-store offload on, sealed chunks older than <code>uploadAfter</code> are copied to
+   the bucket under their path relative to the data dir (plus the configured prefix) and
+   marked <code>remote</code>; before step 2 deletes any day, local copies of remote chunks are
+   evicted oldest-first (§3.3b). Queries read evicted chunks from the bucket through the
+   local cache; a higher <code>ms</code> in the response is the only visible difference.</li>
+</ol>
+<h3 id="38-federation">3.8 Federation<a class="headerlink" href="#38-federation" title="Permanent link">&para;</a></h3>
+<p>A hub with <code>federation.peers</code> fans out <code>/streams</code>, <code>/query</code>, <code>/tail</code>, <code>/export</code> and
+<code>/status</code> to its peers in parallel, merges by timestamp, namespaces peer stream ids as
+<code>&lt;peer&gt;/&lt;id&gt;</code> (so a <code>sid=eu/14</code> request is routed straight to <code>eu</code>), and forwards
+<code>X-P10-Hops</code> to stop loops at three hops. Live tail is relayed by reading each peer's
+SSE stream and rewriting ids. Peers authenticate the console with a bearer token,
+which may be bound to a viewer role on the peer to limit what the console can see.
+Unreachable peers are listed in <code>peers_failed</code>; the rest still answer.</p>
+<h3 id="39-ingest-limits">3.9 Ingest limits<a class="headerlink" href="#39-ingest-limits" title="Permanent link">&para;</a></h3>
+<p>Per request: <code>limits.maxBatchBytes</code> (8 MiB uncompressed, 413 above), <code>limits.maxLineBytes</code>
+(256 KiB; longer lines are truncated with a <code>…[truncated]</code> marker). Per cluster:
+<code>limits.perCluster.bytesPerSecond</code> token bucket → <code>429</code> with <code>Retry-After</code>; agents back
+off and spool, so one noisy spoke cannot starve the others.</p>
+<h3 id="310-auth">3.10 Auth<a class="headerlink" href="#310-auth" title="Permanent link">&para;</a></h3>
+<p>Ingest: global <code>ingestTokens</code> (any cluster) or <code>clusterTokens</code> (each restricted to
+cluster globs; a spoke's leaked token cannot write as another cluster). Read: <code>roles</code>
+bind basic usernames, OIDC emails or domains, or dedicated API tokens to cluster and
+namespace globs; the selector of every read API is post-filtered by the caller's role,
+so scoped users cannot enumerate other namespaces through <code>/streams</code> either. With no
+roles configured everyone authenticated sees everything.</p>
+<p>UI/API modes: <code>none</code> (behind your own SSO proxy), <code>basic</code>, or <code>oidc</code> (authorization-code
+flow, email/domain allow-list). <code>basic</code> is a login form: local users live in
+<code>/data/auth/users.json</code> (PBKDF2-SHA256, 600k iterations); with no configured password the
+hub seeds <code>admin</code>/<code>admin</code> flagged <code>must_change</code>, and <code>RequireUI</code> sends that session to
+<code>/auth/setup</code> (API: 403) until a new password is stored. A password from the chart secret
+is checked after the users file and never seeds the default; with <code>lockPassword</code> (demo
+hubs) the users file is not opened at all, so the secret is the only credential and
+<code>/auth/password</code> answers 403. HTTP Basic headers are
+accepted on every request for scripts. Sessions are HMAC-SHA256-signed cookies carrying
+user, expiry and the must-change flag; the key is generated once into
+<code>/data/auth/session.key</code>, so a hub restart does not log anyone out.</p>
+<h3 id="311-ui">3.11 UI<a class="headerlink" href="#311-ui" title="Permanent link">&para;</a></h3>
+<p>Embedded single-page app (one HTML file, vanilla JavaScript, no framework, no build
+step), served from the hub binary, no external assets.</p>
+<ul>
+<li>Left: <code>cluster → namespace → pod → container</code> tree with live/gone markers and
+  restart counts, built from one <code>/streams</code> call and refreshed every 30 s. Type-ahead
+  filtering is client-side. Gone pods leave the tree 24 h after their last chunk is
+  deleted by retention.</li>
+<li>"Agents" page: one row per node with last-seen, lag, spool size, drops.</li>
+<li>Main: virtualized log lines (only the visible rows plus a small margin are in the
+  DOM, regardless of result size), stdout/stderr colouring, wrap toggle, JSON
+  pretty-print toggle, timestamps in local/UTC/relative.</li>
+<li>Toolbar: time range presets, filter box (same grammar as <code>q</code>), follow toggle
+  (switches to SSE; the client keeps the newest 20 000 lines), export, permalink (all
+  state in the URL).</li>
+<li>Multi-pod tail: select several pods, lines interleaved by timestamp with a colour per
+  pod; a restart boundary row is drawn where a stream's restart count changes.</li>
+</ul>
+<h2 id="4-failure-modes">4. Failure modes<a class="headerlink" href="#4-failure-modes" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>Failure</th>
+<th>Behaviour</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Agent restarts</td>
+<td>Resumes from the checkpointed offset; at most one batch is re-sent and the hub's cursor dedup drops it.</td>
+</tr>
+<tr>
+<td>Node reboots</td>
+<td>Same as above; positions and the disk buffer live on a hostPath.</td>
+</tr>
+<tr>
+<td>Hub down</td>
+<td>Agent spools to disk up to <code>buffer.maxBytes</code>, then drops oldest and reports the count. A push has a bounded deadline (10 s + 1 s/MiB), so a hub pod that vanishes under an open keep-alive connection costs ~10 s, not the 60 s client timeout.</td>
+</tr>
+<tr>
+<td>Hub crashes mid-write</td>
+<td>Acked pushes are in the fsynced WAL and are replayed on start; un-acked ones are re-sent by the agent. A torn frame at the end of an <code>.open</code> chunk is truncated at the first bad CRC. No loss, no duplicates (<code>kill -9</code> scenario in <code>make e2e</code>).</td>
+</tr>
+<tr>
+<td>PVC full</td>
+<td>The disk cap (default 90 % of the PVC) exists to prevent it. If a write still fails the push gets <code>500</code>, the agent spools the batch, and ingest resumes once retention or an operator frees space.</td>
+</tr>
+<tr>
+<td>Kubelet rotates a file</td>
+<td>The old inode is drained for <code>RotateWait</code> (5 s) after the path points elsewhere, whether the discoverer or the tailer's own inode check noticed first, because the runtime may still write to it until it reopens the path. A path that is briefly absent between rename and reopen does not end the stream; two consecutive misses ~1 s apart do.</td>
+</tr>
+<tr>
+<td>Kubelet rotates faster than agent reads</td>
+<td>Loss is possible only if the agent lags more than <code>containerLogMaxFiles × containerLogMaxSize</code> (default 50 MiB per container). Rate limiting and <code>priorityClassName</code> keep the agent scheduled and fast.</td>
+</tr>
+<tr>
+<td>Clock skew between nodes</td>
+<td>Timestamps are stamped by the runtime when it reads the pipe (not by the app), with the node's clock; the hub never rewrites them. Interleaved multi-pod views may show skew.</td>
+</tr>
+<tr>
+<td>Static pods</td>
+<td>Their <code>uid</code> in the path is the config hash, not an API uid. Harmless: it is still unique per pod spec.</td>
+</tr>
+<tr>
+<td>Same pod name recreated</td>
+<td>Different <code>pod_uid</code> → separate stream; the UI groups by name and shows both.</td>
+</tr>
+</tbody>
+</table>
+<h2 id="5-sizing">5. Sizing<a class="headerlink" href="#5-sizing" title="Permanent link">&para;</a></h2>
+<p>Measured (v1.0, <code>bench/run.sh</code>, Apple M1 Pro laptop, local processes; idle numbers from
+a kind node). Details and caveats in <code>bench/RESULTS.md</code>.</p>
+<table>
+<thead>
+<tr>
+<th>Component</th>
+<th>Idle (kind, Linux)</th>
+<th>2 000 lines/s</th>
+<th>10 000 lines/s</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Agent RSS</td>
+<td>18.5 MiB</td>
+<td>31.3 MiB</td>
+<td>43.8 MiB</td>
+</tr>
+<tr>
+<td>Agent CPU</td>
+<td>~0</td>
+<td>0.3 % of a core</td>
+<td>3.4 %</td>
+</tr>
+<tr>
+<td>Hub RSS</td>
+<td>24 MiB</td>
+<td>57.6 MiB</td>
+<td>100 MiB</td>
+</tr>
+<tr>
+<td>Hub CPU (ingest only)</td>
+<td>~0</td>
+<td>2.0 %</td>
+<td>7.2 %</td>
+</tr>
+<tr>
+<td>Disk</td>
+<td>—</td>
+<td>raw ÷ 8.7</td>
+<td>raw ÷ 7.3</td>
+</tr>
+</tbody>
+</table>
+<p>Hub memory = memtables (bounded by <code>storage.memtable.maxBytes</code>, 128 MiB default) +
+open chunks (64 KiB bloom each) + query buffers (decoded frames, up to <code>maxScanBytes</code>
+per query). It does not grow with ingest rate beyond the memtable budget.
+Example: 30 nodes, 15 GB/day raw, 7 days ≈ 15–20 GB on disk. For reference,
+VictoriaMetrics' 2026 collector benchmark at 10 k lines/s measured vlagent at
+28 MiB / 0.06 core, Fluent Bit 78 MiB / 0.26, Vector 154 MiB / 0.41.</p>
+<h2 id="6-test-strategy">6. Test strategy<a class="headerlink" href="#6-test-strategy" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>Layer</th>
+<th>What</th>
+<th>Where</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>CRI parser</td>
+<td>containerd / CRI-O / docker-json lines, path parsing, <code>P</code>/<code>F</code> partial-line reassembly</td>
+<td><code>internal/cri</code></td>
+</tr>
+<tr>
+<td>Tailer</td>
+<td>kubelet-style rename + recreate, truncation, delete while reading, resume from checkpoint</td>
+<td><code>internal/tail</code></td>
+</tr>
+<tr>
+<td>Chunk</td>
+<td>frame round trip, torn-tail truncation, footer recovery</td>
+<td><code>internal/chunk</code></td>
+</tr>
+<tr>
+<td>WAL</td>
+<td>append, replay, truncation at a bad record</td>
+<td><code>internal/wal</code></td>
+</tr>
+<tr>
+<td>Store</td>
+<td>ingest + cursor dedup + query + recovery; WAL crash recovery with no loss / no dup; offload → evict → fetch → <code>--rebuild-index</code> from the bucket</td>
+<td><code>internal/store</code></td>
+</tr>
+<tr>
+<td>Bloom / filter</td>
+<td>trigram bloom never false-negative; filter grammar</td>
+<td><code>internal/bloom</code>, <code>internal/query</code></td>
+</tr>
+<tr>
+<td>S3 client</td>
+<td>SigV4 client against an in-memory fake</td>
+<td><code>internal/s3</code></td>
+</tr>
+<tr>
+<td>End to end (local)</td>
+<td>real agent + hub over a fake <code>/var/log/pods</code>: ingest, filter, SSE tail, agent restart, rotation, <code>kill -9</code> hub, pod deletion, auth, cluster tokens, roles, rebuild, federation, S3 offload (needs Docker)</td>
+<td><code>hack/e2e-local.sh</code>, CI</td>
+</tr>
+<tr>
+<td>Batcher</td>
+<td>multiline join, <code>multiline.timeout</code>, flush on stream end, size-triggered flush keeps the open group, rate-limit marker and checkpoint advance over dropped lines</td>
+<td><code>internal/ship</code></td>
+</tr>
+<tr>
+<td>End to end (kind)</td>
+<td>chart install, real kubelet files, enrichment, token consistency, <code>helm upgrade</code> keeps data</td>
+<td><code>hack/e2e-kind.sh</code>, CI</td>
+</tr>
+<tr>
+<td>End to end (multi-cluster kind)</td>
+<td>3-node hub cluster + spoke cluster over the docker network: DaemonSet on tainted control plane, cross-cluster queries, enrichment, restart boundaries, 20 KiB partial lines, multiline traces, rate-limit markers, per-cluster tokens, CronJob / Job / init-container logs, hub outage → spool → drain with no loss / no dup</td>
+<td><code>hack/e2e-multi.sh</code>, <code>hack/demo/</code>, CI</td>
+</tr>
+<tr>
+<td>Load</td>
+<td>2 k and 10 k lines/s, RSS / CPU / disk</td>
+<td><code>bench/run.sh</code> → <code>bench/RESULTS.md</code>, manual</td>
+</tr>
+</tbody>
+</table>
+<h2 id="7-repository-layout">7. Repository layout<a class="headerlink" href="#7-repository-layout" title="Permanent link">&para;</a></h2>
+<pre><code>p10logs/
+├── cmd/p10logs-agent/       # agent main
+├── cmd/p10logs-hub/         # hub main (+ --rebuild-index, --check)
+├── internal/
+│   ├── cri/                 # CRI + docker-json line parser, path parser, partial-line merger
+│   ├── tail/                # discovery, tailer (rotation, truncation, deletion), positions, gz backfill
+│   ├── ship/                # batcher (multiline, rate limit, sections), HTTP client, spool, shipper
+│   ├── agent/               # agent config + orchestration
+│   ├── wire/                # push format constants/types
+│   ├── wal/                 # write-ahead log segments, replay
+│   ├── chunk/               # frame writer/reader, footer, crash recovery
+│   ├── bloom/               # trigram bloom filter per chunk
+│   ├── index/               # SQLite catalog (streams, chunks, cursors)
+│   ├── store/               # WAL + memtables, dedup, seal, query, retention, offload, rebuild
+│   ├── s3/                  # minimal SigV4 object-store client (+ in-memory fake)
+│   ├── federation/          # peer fan-out, id routing, hop guard
+│   ├── tailbus/             # in-process pub/sub for live tail
+│   ├── query/               # filter grammar
+│   ├── auth/                # ingest/API tokens, basic, OIDC sessions
+│   ├── api/                 # HTTP handlers, SSE, export, status, metrics
+│   └── hub/                 # hub config
+├── ui/                      # single-file console, embedded with go:embed
+├── charts/p10logs/          # Helm chart
+├── hack/                    # dev configs, e2e-local.sh, e2e-kind.sh, e2e-multi.sh, kind/ configs, demo/ workloads
+└── docs/
+</code></pre>
+<p>Language: Go 1.26+, no CGO (<code>modernc.org/sqlite</code>, <code>klauspost/compress/zstd</code>,
+<code>coreos/go-oidc</code>). Images: distroless static, linux/amd64 + linux/arm64.</p>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "..", "features": [], "search": "../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../assets/javascripts/bundle.d7400e89.min.js"></script>
+      
+    
+  </body>
+</html>
