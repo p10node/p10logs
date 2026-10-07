@@ -1,4 +1,7 @@
-repositoryID: p10logs
+# Artifact Hub repository metadata.
+# Pushed to oci://ghcr.io/p10node/charts/p10logs:artifacthub.io by the release workflow.
+# repositoryID must be the UUID shown on the repository card in the Artifact Hub control panel.
+repositoryID: 53f30ec5-11d0-4480-a68e-6310ab4b9111
 owners:
   - name: p10node
-    email: oss@p10node.dev
+    email: oss@p10node.com
