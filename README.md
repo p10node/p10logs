@@ -372,6 +372,14 @@ curl -s -u admin:$PW 'http://localhost:8080/api/v1/query?namespace=payments&pod=
   Once any role exists, identities that match none are denied; global `apiTokens` stay
   unrestricted. Federated queries carry the caller's scope to each peer through the
   peer token's own role on that hub.
+- Chart releases are signed with [cosign](https://github.com/sigstore/cosign) (keyless,
+  GitHub Actions OIDC). Verify before installing:
+
+  ```bash
+  cosign verify ghcr.io/p10node/charts/p10logs:<version> \
+    --certificate-identity-regexp='^https://github.com/p10node/p10logs/' \
+    --certificate-oidc-issuer=https://token.actions.githubusercontent.com
+  ```
 
 ### OIDC
 
