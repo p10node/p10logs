@@ -37,6 +37,7 @@ type Config struct {
 	MetricsEnabled  bool
 	Version         string
 	Peers           *federation.Peers
+	UIHandler       http.Handler // optional development UI, still protected by UI auth
 }
 
 // Server holds handlers.
@@ -78,7 +79,7 @@ func (s *Server) Handler() http.Handler {
 	ui.HandleFunc("/api/v1/tail", s.tail)
 	ui.HandleFunc("/api/v1/export", s.export)
 	ui.HandleFunc("/api/v1/status", s.status)
-	ui.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+	page := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path != "/" && r.URL.Path != "/index.html" {
 			http.NotFound(w, r)
 			return
@@ -87,6 +88,11 @@ func (s *Server) Handler() http.Handler {
 		w.Header().Set("Cache-Control", "no-cache")
 		w.Write(s.ui)
 	})
+	if s.cfg.UIHandler != nil {
+		ui.Handle("/", s.cfg.UIHandler)
+	} else {
+		ui.Handle("/", page)
+	}
 	if s.cfg.MetricsEnabled {
 		mux.HandleFunc("/metrics", s.metrics)
 	}

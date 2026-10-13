@@ -499,6 +499,7 @@ make e2e-multi       # 3-node hub cluster + spoke cluster + demo apps on kind; p
 make demo            # apply hack/demo/ (JSON, crash loops, stack traces, 20 KiB lines, CronJob…) to the current context
 make images-tar      # dist/p10logs-images-<ver>.tar for nodes without registry access
 make run-hub         # hub on :8080, UI auth none, ingest token "dev", data in ./data
+make dev             # watch Go/config edits and restart hub; auto-refresh browser on UI edits
 make package         # dist/p10logs-<ver>.tgz; before the first GitHub release install from this file
                      # (helm install p10logs dist/p10logs-1.1.1.tgz) with images from `make images-tar`
 make run-agent       # agent tailing ./hack/fakepods into that hub
@@ -510,6 +511,15 @@ bench/run.sh 2000    # agent + hub RSS/CPU at 2 000 lines/s (see bench/RESULTS.m
 To see the UI locally without a cluster, run `make run-hub` and `make run-agent`, then
 write CRI-format lines into `hack/fakepods/<ns>_<pod>_<uid>/<container>/0.log` and open
 http://localhost:8080.
+
+For development, stop the existing hub with Ctrl+C and use `make dev` instead of
+`make run-hub`. Open http://127.0.0.1:8080 (refresh once if the page was already open).
+Go source, `go.mod`, `go.sum`, and `hack/hub-dev.yaml` changes rebuild and restart
+the hub automatically; a failed build leaves the previous hub running. Edits to
+`ui/index.html` are served directly from disk and refresh the browser automatically,
+without rebuilding Go. The watcher uses only Go's standard library. Ctrl+C stops
+both the watcher and its hub. The agent still runs separately. Normal builds keep
+using the embedded UI and do not enable browser auto-refresh.
 
 ## FAQ
 

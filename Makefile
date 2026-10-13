@@ -4,7 +4,7 @@ ARCH  ?= $(shell uname -m | sed 's/x86_64/amd64/;s/aarch64/arm64/')
 VER   ?= $(shell awk '/^version:/{print $$2}' $(CHART)/Chart.yaml)
 LDFLAGS := -s -w -X github.com/p10node/p10logs/internal/agent.Version=$(VER) -X main.Version=$(VER)
 
-.PHONY: help build test lint template template-spoke package push-chart images push-images images-tar e2e e2e-kind e2e-multi kind-up kind-down demo run-hub run-agent
+.PHONY: help build test lint template template-spoke package push-chart images push-images images-tar e2e e2e-kind e2e-multi kind-up kind-down demo run-hub run-agent dev
 
 help:
 	@grep -E '^[a-z0-9-]+:.*##' $(MAKEFILE_LIST) | awk -F'##' '{printf "  %-16s %s\n",$$1,$$2}'
@@ -18,6 +18,9 @@ test: ## unit tests
 
 e2e: build ## local end-to-end (fake /var/log/pods, real agent + hub)
 	./hack/e2e-local.sh
+
+dev: ## auto-rebuild hub on Go/config edits; auto-refresh browser on UI edits
+	go run ./hack/dev
 
 run-hub: build ## run a hub on :8080 with ./data (UI auth: none, token: dev)
 	P10_INGEST_TOKEN=dev ./bin/p10logs-hub --config hack/hub-dev.yaml
