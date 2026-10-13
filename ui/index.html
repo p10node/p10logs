@@ -3,12 +3,13 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<script>try{const t=JSON.parse(localStorage.getItem('p10logs.theme'));if(t==='light'||t==='dark')document.documentElement.dataset.theme=t}catch(e){}</script><!-- before first paint: no flash of the wrong theme -->
 <title>p10logs</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 16 16%27%3E%3Crect width=%2716%27 height=%2716%27 rx=%273%27 fill=%27%235cc8c1%27/%3E%3Cpath d=%27M4 5h8M4 8h8M4 11h8%27 stroke=%27%2308201e%27 stroke-width=%272%27 stroke-linecap=%27round%27/%3E%3C/svg%3E">
 <style>
 :root{
   --bg:#0f1216; --panel:#151a20; --panel-2:#1b2129; --line:#262e38;
-  --fg:#d7dde5; --fg-muted:#8a95a3; --fg-faint:#5b6673;
+  --fg:#d7dde5; --fg-muted:#9aa5b3; --fg-faint:#7a8594;
   --accent:#5cc8c1; --accent-ink:#08201e;
   --live:#7bd88f; --warn:#e3b341; --err:#f0716a; --stderr:#f2a58e; --sel:rgba(92,200,193,.14);
   --p0:#7cc4ff; --p1:#f2a58e; --p2:#c9a7ff; --p3:#8fe3a8; --p4:#ffd47a; --p5:#ff9ad5;
@@ -16,13 +17,20 @@
   --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
   color-scheme:dark;
 }
+/* theme: no data-theme = follow the system; data-theme="light"|"dark" = chosen in the header */
 @media (prefers-color-scheme: light){
   :root:not([data-theme="dark"]){
     --bg:#f3f5f7; --panel:#ffffff; --panel-2:#eaeef2; --line:#d5dbe2;
-    --fg:#1c2128; --fg-muted:#5b6673; --fg-faint:#8a95a3; --accent:#0f8b84; --accent-ink:#ffffff;
+    --fg:#1c2128; --fg-muted:#4f5a67; --fg-faint:#66717e; --accent:#0f8b84; --accent-ink:#ffffff;
     --live:#1f8f4a; --warn:#8f6400; --err:#c8362e; --stderr:#b5482f; --sel:rgba(15,139,132,.12);
     --p0:#1f6fc2; --p1:#b5482f; --p2:#6f3fc7; --p3:#1f8f4a; --p4:#8f6400; --p5:#b8368f; color-scheme:light;
   }
+}
+:root[data-theme="light"]{
+    --bg:#f3f5f7; --panel:#ffffff; --panel-2:#eaeef2; --line:#d5dbe2;
+    --fg:#1c2128; --fg-muted:#4f5a67; --fg-faint:#66717e; --accent:#0f8b84; --accent-ink:#ffffff;
+    --live:#1f8f4a; --warn:#8f6400; --err:#c8362e; --stderr:#b5482f; --sel:rgba(15,139,132,.12);
+    --p0:#1f6fc2; --p1:#b5482f; --p2:#6f3fc7; --p3:#1f8f4a; --p4:#8f6400; --p5:#b8368f; color-scheme:light;
 }
 html,body{height:100%}
 body{margin:0;background:var(--bg);color:var(--fg);font:13px/1.45 var(--ui);overflow:hidden}
@@ -44,6 +52,7 @@ a{color:var(--accent)}
 .hubpill{display:flex;align-items:center;gap:6px;color:var(--fg-muted);font-family:var(--mono);font-size:11.5px}
 .dot{width:7px;height:7px;border-radius:50%;background:var(--live);display:inline-block}
 .dot.bad{background:var(--err)}
+.seg.theme button{padding:3px 8px;font-size:13px;line-height:16px}
 .menubtn{display:none;background:none;border:1px solid var(--line);border-radius:6px;padding:4px 8px}
 .shell{display:grid;grid-template-columns:280px 1fr;min-height:0}
 .shell.full{grid-template-columns:1fr} /* agents tab: no stream tree, main takes the whole width */
@@ -52,33 +61,43 @@ a{color:var(--accent)}
 .find input{flex:1;background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:6px 8px;min-width:0}
 .side .tools{display:flex;gap:4px;padding:6px 8px 4px;align-items:center;flex-wrap:wrap}
 .btn.sm{padding:2px 7px;font-size:11.5px}
+.side .btn.sm{font-size:12.5px}
+.side .find input{font-size:14px}
 .btn:disabled{opacity:.45;cursor:default}
-.tools select{background:var(--bg);border:1px solid var(--line);border-radius:6px;color:var(--fg);padding:3px 4px;font-size:11.5px;flex:1;min-width:0}
+.tools select{background:var(--bg);border:1px solid var(--line);border-radius:6px;color:var(--fg);padding:3px 4px;font-size:12.5px;flex:1;min-width:0}
 .chips{display:flex;gap:4px;padding:2px 8px 8px;flex-wrap:wrap;border-bottom:1px solid var(--line)}
-.chips button{background:none;border:1px solid var(--line);border-radius:10px;padding:1px 8px;font-size:11px;color:var(--fg-muted)}
+.chips button{background:none;border:1px solid var(--line);border-radius:10px;padding:1px 8px;font-size:12px;color:var(--fg-muted)}
 .chips button[aria-pressed="true"]{background:var(--sel);color:var(--accent);border-color:var(--accent)}
 .node.wl{padding-left:32px;color:var(--fg)}
 .node.wl.part .nm{color:var(--accent)}
-.node .kd{font-size:9.5px;color:var(--fg-faint);border:1px solid var(--line);border-radius:4px;padding:0 4px;letter-spacing:.04em;flex:none}
+.node .kd{font-size:11.5px;color:var(--fg-faint);border:1px solid var(--line);border-radius:4px;padding:0 4px;letter-spacing:.04em;flex:none}
 .earlier{position:absolute;top:8px;left:50%;transform:translateX(-50%);background:var(--panel);color:var(--fg-muted);border:1px solid var(--line);border-radius:14px;padding:3px 10px;font-size:11.5px;z-index:2;cursor:pointer}
-.tree{overflow:auto;flex:1;padding:6px 0 12px;font-family:var(--mono);font-size:12px}
+.tree{overflow:auto;flex:1;padding:6px 0 12px;font-family:var(--mono);font-size:13px}
 .node{display:flex;align-items:center;gap:6px;padding:3px 8px;white-space:nowrap;cursor:pointer;color:var(--fg-muted);user-select:none}
 .node:hover{background:var(--panel-2)}
-.node.cluster{color:var(--fg);font-family:var(--ui);font-weight:600;font-size:12.5px;padding-top:8px}
+.node.cluster{color:var(--fg);font-family:var(--ui);font-weight:600;font-size:13.5px;padding-top:8px}
 .node.ns{padding-left:18px;color:var(--fg)}
 .node.pod{padding-left:46px}
 .node.ctr{padding-left:70px}
 .node.ctr.sel{background:var(--sel);color:var(--fg)}
-.node .tw{width:10px;color:var(--fg-faint);font-size:10px}
+.node .tw{width:11px;color:var(--fg-muted);font-size:11px}
 .node .nm{overflow:hidden;text-overflow:ellipsis;min-width:0;flex:1}
 .node.gone .nm{text-decoration:line-through;opacity:.6}
 .node .st{width:6px;height:6px;border-radius:50%;background:var(--live);flex:none}
 .node.idle .st{background:var(--warn)}
 .node.gone .st{background:var(--fg-faint)}
-.node .rs{font-size:10px;color:var(--warn);border:1px solid color-mix(in srgb,var(--warn) 50%,transparent);border-radius:8px;padding:0 5px}
-.node .cnt{font-size:10.5px;color:var(--fg-faint)}
+.node .rs{font-size:11.5px;color:var(--warn);border:1px solid color-mix(in srgb,var(--warn) 50%,transparent);border-radius:8px;padding:0 5px}
+.node .cnt{font-size:12px;color:var(--fg-muted)}
 .node input[type=checkbox]{margin:0;accent-color:var(--accent)}
 .node .sw{width:8px;height:8px;border-radius:2px;background:var(--pc,transparent);flex:none}
+.node .pin{background:none;border:0;padding:0 3px;margin:-2px 0;color:var(--fg-faint);font-size:16px;line-height:1;opacity:0;flex:none} /* opacity, not visibility: stays focusable and clickable */
+.node.ns:hover .pin,.node .pin:focus-visible,.node .pin[aria-pressed="true"]{opacity:1}
+.node .pin[aria-pressed="true"]{color:var(--warn)}
+.node .pin:hover{color:var(--warn)}
+@media (hover:none){.node .pin{opacity:1}}
+.side .btn.pinonly{font-size:16px;line-height:16px;padding:2px 6px;align-self:stretch}
+.btn.pinonly[aria-pressed="true"]{color:var(--warn);border-color:var(--warn)}
+.treehint{padding:10px 12px;color:var(--fg-faint);font-family:var(--ui);font-size:13px}
 .collapsed>.kids{display:none}
 .main{display:flex;flex-direction:column;min-width:0;min-height:0}
 .bar{display:flex;align-items:center;gap:8px;padding:8px 10px;border-bottom:1px solid var(--line);background:var(--panel);flex-wrap:wrap}
@@ -88,6 +107,8 @@ a{color:var(--accent)}
 .seg{display:flex;border:1px solid var(--line);border-radius:6px;overflow:hidden}
 .seg button{background:none;border:0;padding:5px 9px;color:var(--fg-muted);border-right:1px solid var(--line)}
 .seg button:last-child{border-right:0}
+.seg button:disabled{opacity:.4;cursor:default}
+#fontsz button{font-family:var(--mono);padding:5px 8px}
 .seg button[aria-pressed="true"]{background:var(--panel-2);color:var(--fg)}
 .btn{background:none;border:1px solid var(--line);border-radius:6px;padding:5px 9px;color:var(--fg-muted);display:inline-flex;align-items:center;gap:6px;text-decoration:none}
 .btn[aria-pressed="true"]{background:var(--panel-2);color:var(--fg);border-color:var(--fg-faint)}
@@ -95,27 +116,27 @@ a{color:var(--accent)}
 .btn.follow[aria-pressed="true"] .dot{background:var(--accent);animation:pulse 1.2s infinite}
 @keyframes pulse{50%{opacity:.3}}
 @media (prefers-reduced-motion: reduce){.btn.follow[aria-pressed="true"] .dot{animation:none}}
-.crumb{font-family:var(--mono);font-size:11.5px;color:var(--fg-muted);padding:6px 10px 0;display:flex;gap:8px;align-items:flex-start}
+.crumb{font-family:var(--mono);font-size:12px;color:var(--fg-muted);padding:6px 10px 0;display:flex;gap:8px;align-items:flex-start}
 .crumb .fold{flex:none;padding:1px 6px;font-size:11px;gap:4px;font-family:var(--mono)}
 .crumb .cl{flex:1;min-width:0;display:flex;gap:10px;align-items:center;flex-wrap:wrap;padding-top:2px}
 .crumb .cl>span{white-space:nowrap}
 .crumb.fold .cl{flex-wrap:nowrap;overflow:hidden;-webkit-mask-image:linear-gradient(90deg,#000 calc(100% - 48px),transparent);mask-image:linear-gradient(90deg,#000 calc(100% - 48px),transparent)}
 .crumb .pc{width:8px;height:8px;border-radius:2px;display:inline-block;margin-right:4px}
 .logwrap{position:relative;flex:1;min-height:0;display:flex;flex-direction:column}
-.logview{flex:1;overflow:auto;font-family:var(--mono);font-size:12px;line-height:20px;position:relative;background:var(--bg)}
+.logview{flex:1;overflow:auto;font-family:var(--mono);font-size:var(--fs,13px);line-height:var(--rowh,22px);position:relative;background:var(--bg)}
 .spacer{position:relative;width:100%}
 .rows{position:absolute;left:0;right:0;top:0}
-.row{display:flex;gap:10px;padding:0 12px;white-space:pre;min-height:20px;border-left:2px solid transparent}
-/* fixed-height mode is virtualised at 20 px per row: a message with embedded newlines
+.row{display:flex;gap:10px;padding:0 12px;white-space:pre;min-height:var(--rowh,22px);border-left:2px solid transparent}
+/* fixed-height mode is virtualised at ROWH px per row (follows the A−/A+ text size): a message with embedded newlines
    (joined stack trace) must not grow the row, or the scroll height drifts and the bottom
    becomes unreachable. Newlines are shown as ⏎; Wrap mode shows them for real. */
-.logview:not(.wrap) .row{height:20px;overflow:hidden}
+.logview:not(.wrap) .row{height:var(--rowh,22px);overflow:hidden}
 .logview:not(.wrap) .row .msg{overflow:hidden;text-overflow:ellipsis}
-.nl{color:var(--accent);opacity:.75;margin:0 3px;font-size:11px}
+.nl{color:var(--accent);opacity:.75;margin:0 3px;font-size:.92em}
 .row:hover{background:var(--panel-2)}
 .wrap .row{white-space:pre-wrap;word-break:break-word}
-.row .ts{color:var(--fg-faint);flex:none;width:96px;font-variant-numeric:tabular-nums}
-.row .src{color:var(--pc,var(--fg-muted));flex:none;width:170px;overflow:hidden;text-overflow:ellipsis}
+.row .ts{color:var(--fg-muted);flex:none;width:13.5ch;font-variant-numeric:tabular-nums}
+.row .src{color:var(--pc,var(--fg-muted));flex:none;width:24ch;overflow:hidden;text-overflow:ellipsis}
 .row .msg{flex:1;min-width:0}
 .row.e .msg{color:var(--stderr)}
 .row.err .msg{color:var(--err)}
@@ -133,7 +154,7 @@ a{color:var(--accent)}
 .newpill{position:absolute;bottom:34px;left:50%;transform:translateX(-50%);background:var(--accent);color:var(--accent-ink);border:0;border-radius:14px;padding:4px 12px;font-weight:600;box-shadow:0 4px 14px rgba(0,0,0,.3)}
 .empty{position:absolute;inset:0;display:grid;place-items:center;color:var(--fg-muted);text-align:center;padding:24px}
 .empty b{display:block;color:var(--fg);font-size:15px;margin-bottom:6px}
-.status{display:flex;gap:16px;align-items:center;padding:4px 12px;border-top:1px solid var(--line);background:var(--panel);font-family:var(--mono);font-size:11px;color:var(--fg-muted);flex-wrap:wrap}
+.status{display:flex;gap:16px;align-items:center;padding:4px 12px;border-top:1px solid var(--line);background:var(--panel);font-family:var(--mono);font-size:12px;color:var(--fg-muted);flex-wrap:wrap}
 .status .drop{color:var(--warn)}
 .status .errtxt{color:var(--err)}
 .page{overflow:auto;padding:16px;display:none;flex-direction:column;gap:16px}
@@ -161,7 +182,7 @@ h2{font-size:13px;font-weight:600;margin:0 0 8px;color:var(--fg-muted);text-tran
   .side.open{transform:none}
   .menubtn{display:inline-flex}
   .hubpill{display:none}
-  .row .src{width:110px}
+  .row .src{width:14ch}
 }
 </style>
 </head>
@@ -176,6 +197,7 @@ h2{font-size:13px;font-weight:600;margin:0 0 8px;color:var(--fg-muted);text-tran
     </nav>
     <div class="grow"></div>
     <div class="hubpill" id="hubpill"><span class="dot"></span>connecting…</div>
+    <div class="seg theme" id="theme" role="group" aria-label="Theme"><button data-th="system" aria-pressed="true" title="Theme: follow the system" aria-label="System theme">◐</button><button data-th="light" aria-pressed="false" title="Theme: light" aria-label="Light theme">☀</button><button data-th="dark" aria-pressed="false" title="Theme: dark" aria-label="Dark theme">☾</button></div>
     <span id="user" style="color:var(--fg-muted)"></span>
   </header>
 
@@ -187,6 +209,7 @@ h2{font-size:13px;font-weight:600;margin:0 0 8px;color:var(--fg-muted);text-tran
         <button class="btn sm" id="expand" title="Expand all">⊞</button>
         <button class="btn sm" id="collapse" title="Collapse all">⊟</button>
         <button class="btn sm" id="liveonly" aria-pressed="false" title="Hide pods that no longer exist (their logs stay queryable)">live</button>
+        <button class="btn sm pinonly" id="pinonly" aria-pressed="false" title="Show only pinned namespaces (pin one with ☆ next to its name)">★</button>
         <select id="nsfilter" aria-label="Namespace"><option value="">all namespaces</option></select>
       </div>
       <div class="chips" id="kinds" role="group" aria-label="Workload kind">
@@ -205,6 +228,7 @@ h2{font-size:13px;font-weight:600;margin:0 0 8px;color:var(--fg-muted);text-tran
           <button class="btn follow" id="follow" aria-pressed="true"><span class="dot"></span>Follow</button>
           <button class="btn" id="wrap" aria-pressed="false">Wrap</button>
           <button class="btn" id="json" aria-pressed="true">JSON</button>
+          <div class="seg" id="fontsz" role="group" aria-label="Log text size"><button id="fsdown" aria-label="Smaller log text">A−</button><button id="fsup" aria-label="Larger log text">A+</button></div>
           <div class="seg" id="tsmode"><button data-t="local" aria-pressed="true">Local</button><button data-t="utc" aria-pressed="false">UTC</button><button data-t="rel" aria-pressed="false">Rel</button></div>
           <a class="btn" id="export" href="#" download>Export</a>
           <button class="btn" id="link">Permalink</button>
@@ -242,7 +266,8 @@ const fmtB=b=>b<1024?b+' B':b<1048576?(b/1024).toFixed(1)+' KiB':b<1073741824?(b
 const PC=['var(--p0)','var(--p1)','var(--p2)','var(--p3)','var(--p4)','var(--p5)'];
 const hash=s=>{let h=2166136261;for(const c of s)h=Math.imul(h^c.charCodeAt(0),16777619);return h>>>0};
 const RANGE_MS={'15m':9e5,'1h':36e5,'6h':216e5,'24h':864e5,'7d':6048e5};
-const ROWH=20;
+let ROWH=22;          // log row height in px; follows the text size
+const FS=[11,12,13,14,15,16,18,20];let fontSz=13; // A−/A+ steps (px)
 
 // ---------- state ----------
 const MAXBUF=10000;   // lines kept in memory while tailing; older ones are re-fetched from the hub on scroll-up
@@ -251,7 +276,11 @@ const PAGE=2000;      // lines per server page
 const S={sel:new Set(),range:'1h',follow:true,wrap:false,json:true,ts:'local',q:'',hl:[],lines:[],view:[],head:0,lastR:{},dropped:0,pending:0,gen:0,
   streams:{},   // sid -> {cluster,ns,pod,uid,ctr,color,live,key,labels}
   tree:[],es:null,next:0,loading:false,collapsed:new Set(),autoCollapsed:new Set(),
-  find:'',kinds:new Set(),ns:'',liveOnly:false,crumbFold:null}; // crumbFold: null = auto (fold when many), else user's choice
+  find:'',kinds:new Set(),ns:'',liveOnly:false,crumbFold:null, // crumbFold: null = auto (fold when many), else user's choice
+  pins:new Set(),pinnedOnly:false}; // pinned namespace names (any cluster), kept in this browser
+// Per-browser preferences. Storage can be missing or throw (private mode, blocked site data).
+const PREF={get(k,d){try{const v=localStorage.getItem('p10logs.'+k);return v===null?d:JSON.parse(v)}catch(e){return d}},
+  set(k,v){try{localStorage.setItem('p10logs.'+k,JSON.stringify(v))}catch(e){}}};
 const CRUMB_FOLD_AT=8; // selected streams above this collapse the chip list to one line
 let lastStart=-1,lastEnd=-1;
 
@@ -290,17 +319,26 @@ function ownerOf(p){
 const KD={Deployment:'deploy',StatefulSet:'sts',DaemonSet:'ds',Job:'job',CronJob:'cron',Pod:'pod','DaemonSet/Job':'ds·job',ReplicaSet:'rs',ReplicationController:'rc'};
 function podMatches(c,n,p,wl){
   if(S.ns&&n.name!==S.ns)return false;
+  if(S.pinnedOnly&&!S.pins.has(n.name))return false;
   if(S.liveOnly&&!p.live)return false;
   if(S.kinds.size&&!wl.kind.split('/').some(k=>S.kinds.has(k)))return false;
   const f=S.find;if(!f)return true;
   return p.name.includes(f)||n.name.includes(f)||c.name.includes(f)||wl.name.toLowerCase().includes(f)||wl.kind.toLowerCase().includes(f)||Object.entries(p.labels||{}).some(([k,v])=>(k+'='+v).toLowerCase().includes(f));
 }
 function nsOptions(){
-  const sel=$('nsfilter'),names=[...new Set(S.tree.flatMap(c=>c.namespaces.map(n=>n.name)))].sort();
+  const sel=$('nsfilter'),names=[...new Set(S.tree.flatMap(c=>c.namespaces.map(n=>n.name)))].filter(n=>!S.pinnedOnly||S.pins.has(n)).sort();
   if(S.ns&&!names.includes(S.ns))S.ns='';
-  sel.innerHTML='<option value="">all namespaces</option>'+names.map(n=>`<option value="${esc(n)}"${n===S.ns?' selected':''}>${esc(n)}</option>`).join('');
+  sel.innerHTML=`<option value="">${S.pinnedOnly?'all pinned':'all namespaces'}</option>`+names.map(n=>`<option value="${esc(n)}"${n===S.ns?' selected':''}>${esc(n)}</option>`).join('');
 }
 function allKeys(){const ks=[];for(const c of S.tree)for(const n of c.namespaces){const nk=c.name+'/'+n.name;ks.push(nk);const seen=new Set();for(const p of n.pods){const wl=ownerOf(p),k=wl.kind+'/'+wl.name;if(!seen.has(k)){seen.add(k);ks.push(nk+'/'+k)}}}return ks}
+
+function togglePin(name){S.pins.has(name)?S.pins.delete(name):S.pins.add(name);PREF.set('pins',[...S.pins].sort());nsOptions();buildTree()}
+function setTheme(t){
+  if(!['system','light','dark'].includes(t))t='system';const r=document.documentElement;
+  if(t==='system')delete r.dataset.theme;else r.dataset.theme=t;
+  PREF.set('theme',t);[...$('theme').children].forEach(b=>b.setAttribute('aria-pressed',b.dataset.th===t));
+}
+function setPinnedOnly(on){S.pinnedOnly=on;PREF.set('pinnedOnly',on);$('pinonly').setAttribute('aria-pressed',on);nsOptions();buildTree()}
 
 function buildTree(){
   const t=$('tree');const now=Date.now()*1e6;const frag=document.createDocumentFragment();
@@ -308,13 +346,15 @@ function buildTree(){
   const toggle=key=>{S.collapsed.has(key)?S.collapsed.delete(key):S.collapsed.add(key);buildTree()};
   for(const c of S.tree){
     const ckey=c.name;let cpods=0;const kids=document.createElement('div');kids.className='kids';
-    for(const n of c.namespaces){
+    for(const n of c.namespaces.slice().sort((a,b)=>S.pins.has(b.name)-S.pins.has(a.name))){
       const groups=new Map();
       for(const p of n.pods){const wl=ownerOf(p);if(!podMatches(c,n,p,wl))continue;const k=wl.kind+'/'+wl.name;if(!groups.has(k))groups.set(k,{wl,pods:[]});groups.get(k).pods.push(p)}
       if(!groups.size)continue;
       const npods=[...groups.values()].reduce((a,g)=>a+g.pods.length,0);cpods+=npods;
       const nk=ckey+'/'+n.name;const nwrap=document.createElement('div');if(S.collapsed.has(nk))nwrap.className='collapsed';
-      const nn=document.createElement('div');nn.className='node ns';nn.innerHTML=`${tw(!S.collapsed.has(nk))}<span class="nm">${esc(n.name)}</span><span class="cnt">${npods}</span>`;nn.onclick=()=>toggle(nk);
+      const pinned=S.pins.has(n.name);
+      const nn=document.createElement('div');nn.className='node ns';nn.innerHTML=`${tw(!S.collapsed.has(nk))}<span class="nm">${esc(n.name)}</span><button class="pin" aria-pressed="${pinned}" title="${pinned?'Unpin':'Pin'} namespace ${esc(n.name)}" aria-label="${pinned?'Unpin':'Pin'} namespace ${esc(n.name)}">${pinned?'★':'☆'}</button><span class="cnt">${npods}</span>`;nn.onclick=()=>toggle(nk);
+      nn.querySelector('.pin').onclick=e=>{e.stopPropagation();togglePin(n.name)};
       nwrap.appendChild(nn);const nkids=document.createElement('div');nkids.className='kids';nwrap.appendChild(nkids);
       for(const [gk,g] of [...groups.entries()].sort((a,b)=>a[1].wl.name.localeCompare(b[1].wl.name))){
         const wk=nk+'/'+gk;
@@ -355,6 +395,11 @@ function buildTree(){
     cn.onclick=()=>toggle(ckey);
     cwrap.appendChild(cn);cwrap.appendChild(kids);frag.appendChild(cwrap);
   }
+  if(S.pinnedOnly&&!S.tree.some(c=>c.namespaces.some(n=>S.pins.has(n.name)))){
+    const h=document.createElement('div');h.className='treehint';
+    h.textContent=S.pins.size?'None of the pinned namespaces has streams right now.':'No pinned namespaces yet. Turn off ★ above, then pin namespaces with ☆ next to their name.';
+    frag.prepend(h);
+  }
   t.replaceChildren(frag);
   $('selcount').textContent=S.sel.size;$('clearsel').disabled=!S.sel.size;
 }
@@ -385,6 +430,20 @@ function rowHtml(l,multi,hl){
   l._h=h;l._g=S.gen;return h;
 }
 function bump(){S.gen++;lastStart=-1;lastEnd=-1}
+// Log text size: rows stay a whole number of px so the virtual scroll height is exact.
+// Keeps the line at the top of the view (or the bottom, when following) in place.
+function setFont(px){
+  if(!FS.includes(px))px=13;
+  const v=$('view'),top=v.scrollTop/ROWH,bottom=atBottom();
+  fontSz=px;ROWH=Math.round(px*1.7);
+  v.style.setProperty('--fs',px+'px');v.style.setProperty('--rowh',ROWH+'px');
+  $('fsdown').disabled=px===FS[0];$('fsup').disabled=px===FS[FS.length-1];
+  $('fsdown').title=`Smaller log text (now ${px}px) · key -`;$('fsup').title=`Larger log text (now ${px}px) · key +`;
+  PREF.set('fontSize',px);
+  lastStart=-1;lastEnd=-1;draw(true);
+  if(bottom)scrollBottom();else if(!S.wrap)v.scrollTop=Math.round(top*ROWH);
+}
+const fontStep=d=>setFont(FS[Math.min(FS.length-1,Math.max(0,FS.indexOf(fontSz)+d))]);
 function earlierPill(){const b=$('earlier');const mem=S.wrap?S.head:0;b.hidden=!(mem>0&&S.sel.size);if(mem>0)b.textContent=`↑ ${mem.toLocaleString()} earlier lines · scroll up`}
 // draw renders only what is visible: fixed-height virtual rows, or (wrap mode, variable
 // height) a window of the last WIN rows that grows upward on demand.
@@ -555,6 +614,8 @@ $('expand').addEventListener('click',()=>{S.collapsed.clear();buildTree()});
 $('collapse').addEventListener('click',()=>{allKeys().forEach(k=>S.collapsed.add(k));buildTree()});
 $('liveonly').addEventListener('click',e=>{S.liveOnly=!S.liveOnly;e.currentTarget.setAttribute('aria-pressed',S.liveOnly);buildTree()});
 $('nsfilter').addEventListener('change',e=>{S.ns=e.target.value;buildTree()});
+$('pinonly').addEventListener('click',()=>setPinnedOnly(!S.pinnedOnly));
+$('theme').addEventListener('click',e=>{const b=e.target.closest('button');if(b)setTheme(b.dataset.th)});
 $('kinds').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;const k=b.dataset.k;
   if(!k)S.kinds.clear();else S.kinds.has(k)?S.kinds.delete(k):S.kinds.add(k);
   [...$('kinds').children].forEach(x=>x.setAttribute('aria-pressed',x.dataset.k?S.kinds.has(x.dataset.k):!S.kinds.size));buildTree()});
@@ -564,18 +625,23 @@ $('follow').addEventListener('click',e=>{S.follow=!S.follow;e.currentTarget.setA
 $('wrap').addEventListener('click',e=>{S.wrap=!S.wrap;e.currentTarget.setAttribute('aria-pressed',S.wrap);$('view').classList.toggle('wrap',S.wrap);S.head=S.wrap?Math.max(0,S.view.length-WIN):0;bump();draw(true);if(S.follow)scrollBottom();syncURL()});
 $('json').addEventListener('click',e=>{S.json=!S.json;e.currentTarget.setAttribute('aria-pressed',S.json);bump();draw(true);syncURL()});
 $('newpill').addEventListener('click',()=>scrollBottom());
+$('fsdown').addEventListener('click',()=>fontStep(-1));$('fsup').addEventListener('click',()=>fontStep(1));
 function toast(msg){const t=document.createElement('div');t.className='toast';t.textContent=msg;document.body.appendChild(t);setTimeout(()=>t.remove(),2600)}
 $('link').addEventListener('click',()=>{syncURL();const u=location.href;
   const done=()=>toast('Permalink copied');const fail=()=>toast(u);
   if(navigator.clipboard&&navigator.clipboard.writeText)navigator.clipboard.writeText(u).then(done,fail);else fail()});
 $('menu').addEventListener('click',()=>$('side').classList.toggle('open'));
-document.addEventListener('keydown',e=>{if(document.activeElement.tagName==='INPUT'||document.activeElement.tagName==='SELECT')return;if(e.key==='/'){e.preventDefault();$('q').focus()}if(e.key==='End'){e.preventDefault();scrollBottom()}if(e.key==='Escape')$('side').classList.remove('open')});
+document.addEventListener('keydown',e=>{if(document.activeElement.tagName==='INPUT'||document.activeElement.tagName==='SELECT')return;if(e.key==='/'){e.preventDefault();$('q').focus()}if(e.key==='End'){e.preventDefault();scrollBottom()}if(e.key==='Escape')$('side').classList.remove('open');
+  if(!e.ctrlKey&&!e.metaKey&&!e.altKey){if(e.key==='+'||e.key==='=')fontStep(1);if(e.key==='-')fontStep(-1)}});
 function showTab(t){const logs=t==='logs';$('tab-logs').setAttribute('aria-selected',logs);$('tab-agents').setAttribute('aria-selected',!logs);$('logs-page').style.display=logs?'contents':'none';$('agents-page').classList.toggle('on',!logs);$('side').style.display=logs?'':'none';document.querySelector('.shell').classList.toggle('full',!logs);if(history.replaceState)history.replaceState(null,'',location.pathname+location.search+(logs?'#logs':'#agents'));if(logs){lastStart=-1;draw(true)}else loadStatus()}
 $('tab-logs').addEventListener('click',()=>showTab('logs'));$('tab-agents').addEventListener('click',()=>showTab('agents'));
 
 // ---------- boot ----------
 (async function(){
   const u=new URLSearchParams(location.search);
+  S.pins=new Set((PREF.get('pins',[])||[]).filter(x=>typeof x==='string'));
+  setFont(PREF.get('fontSize',13));setTheme(PREF.get('theme','system'));
+  S.pinnedOnly=PREF.get('pinnedOnly',false)===true;$('pinonly').setAttribute('aria-pressed',S.pinnedOnly);
   for(const id of u.getAll('sid'))S.sel.add(String(id));
   if(u.get('q')){S.q=u.get('q');$('q').value=S.q}
   if(u.get('range')&&RANGE_MS[u.get('range')]){S.range=u.get('range');[...$('range').children].forEach(x=>x.setAttribute('aria-pressed',x.dataset.r===S.range))}
