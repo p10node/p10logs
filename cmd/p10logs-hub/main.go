@@ -29,6 +29,7 @@ var Version = "dev"
 
 func main() {
 	cfgPath := flag.String("config", "", "path to hub.yaml")
+	devUI := flag.String("dev-ui", "", "development only: serve index.html from this directory and auto-refresh browsers")
 	rebuild := flag.Bool("rebuild-index", false, "recreate index.sqlite from chunk files (and object storage) and exit")
 	check := flag.Bool("check", false, "verify chunks, WAL and index; print a JSON report and exit (non-zero if problems)")
 	flag.Parse()
@@ -132,9 +133,13 @@ func main() {
 		log.Error("auth", "err", err)
 		os.Exit(1)
 	}
+	var uiHandler http.Handler
+	if *devUI != "" {
+		uiHandler = ui.DevHandler(*devUI)
+	}
 	srv := api.New(api.Config{MaxBatchBytes: cfg.Limits.MaxBatchBytes, PerClusterBPS: cfg.Limits.PerCluster.BytesPerSecond, MaxConcurrent: cfg.Query.MaxConcurrent,
 		TailMaxClients: cfg.Query.Tail.MaxClients, TailLinesPerSec: cfg.Query.Tail.MaxLinesPerSecondPerClient, TailBuffer: cfg.Query.Tail.BufferLines,
-		MetricsEnabled: cfg.Metrics.Enabled, Version: Version, Peers: peers}, st, a, ui.Index)
+		MetricsEnabled: cfg.Metrics.Enabled, Version: Version, Peers: peers, UIHandler: uiHandler}, st, a, ui.Index)
 	hs := &http.Server{Addr: cfg.Listen, Handler: srv.Handler(), ReadHeaderTimeout: 10 * time.Second}
 	go st.Run(ctx)
 	go func() {
