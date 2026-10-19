@@ -1,5 +1,27 @@
 # Changelog
 
+## 1.1.5 — 2026-10-19
+
+- UI: namespaces can be pinned with the star next to their name; the star button in the
+  sidebar shows only pinned namespaces. Pins are kept in the browser.
+- UI: A-/A+ (keys `-` and `+`) set the log text size, 11–20 px; row height follows so
+  virtual scrolling stays exact and the reading position is kept.
+- UI: system / light / dark theme switch in the header, applied before first paint.
+- UI: log text 13 px, sidebar text +1 px, brighter timestamps and metadata (faint tone now
+  ~5:1 contrast in both themes).
+- Dev: `make dev` rebuilds and restarts the hub on Go edits (a failed build keeps the
+  previous hub running) and, with `-dev-ui`, serves `ui/index.html` from disk and
+  live-reloads open browsers. Normal builds keep the embedded UI.
+
+## 1.1.4 — 2026-10-07
+
+- Release: chart releases are signed with cosign (keyless, GitHub OIDC).
+
+## 1.1.3 — 2026-10-07
+
+- Chart: Artifact Hub repository metadata (verified publisher), category
+  `monitoring-logging`, Artifact Hub badge in the README.
+
 ## 1.1.2 — 2026-10-06
 
 - Hub, basic auth: `hub.auth.ui.basic.lockPassword=true` for demo hubs. The password from
