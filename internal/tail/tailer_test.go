@@ -25,6 +25,12 @@ func (m *memSink) Record(r Record) {
 }
 func (m *memSink) StreamEnd(cri.Meta, string) { m.mu.Lock(); m.ends++; m.mu.Unlock() }
 func (m *memSink) count() int                 { m.mu.Lock(); defer m.mu.Unlock(); return len(m.msgs) }
+func (m *memSink) endCount() int              { m.mu.Lock(); defer m.mu.Unlock(); return m.ends }
+func (m *memSink) all() []string {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	return append([]string(nil), m.msgs...)
+}
 
 func line(i int) string {
 	return "2026-09-30T10:00:00.000000000Z stdout F line " + string(rune('a'+i%26)) + "\n"
@@ -46,7 +52,7 @@ func TestTailRotateAndDelete(t *testing.T) {
 			time.Sleep(20 * time.Millisecond)
 		}
 		if sink.count() != n {
-			t.Fatalf("want %d lines, got %d: %v", n, sink.count(), sink.msgs)
+			t.Fatalf("want %d lines, got %d: %v", n, sink.count(), sink.all())
 		}
 	}
 	wait(2)
@@ -65,10 +71,10 @@ func TestTailRotateAndDelete(t *testing.T) {
 	wait(5)
 	// delete the pod directory
 	os.RemoveAll(filepath.Join(dir, "ns_pod_uid"))
-	for i := 0; i < 200 && sink.ends == 0; i++ { // gone on two checks: up to ~3 s at the default poll
+	for i := 0; i < 200 && sink.endCount() == 0; i++ { // gone on two checks: up to ~3 s at the default poll
 		time.Sleep(30 * time.Millisecond)
 	}
-	if sink.ends == 0 {
+	if sink.endCount() == 0 {
 		t.Fatal("expected StreamEnd after delete")
 	}
 	cancel()
@@ -89,8 +95,8 @@ func TestTailResumeFromCheckpoint(t *testing.T) {
 	go d.Run(ctx)
 	time.Sleep(300 * time.Millisecond)
 	cancel()
-	if sink.count() != 1 || sink.msgs[0] != "line c" {
-		t.Fatalf("resume: %v", sink.msgs)
+	if sink.count() != 1 || sink.all()[0] != "line c" {
+		t.Fatalf("resume: %v", sink.all())
 	}
 }
 
@@ -124,10 +130,10 @@ func TestTailerDrainsOldInodeAfterReplacement(t *testing.T) {
 	case <-time.After(2 * time.Second):
 		t.Fatal("tailer did not finish after the rotation grace period")
 	}
-	if sink.count() != 2 || sink.msgs[1] != "line c" {
-		t.Fatalf("want [line a, line c] from the old inode, got %v", sink.msgs)
+	if sink.count() != 2 || sink.all()[1] != "line c" {
+		t.Fatalf("want [line a, line c] from the old inode, got %v", sink.all())
 	}
-	if sink.ends != 0 {
+	if sink.endCount() != 0 {
 		t.Fatal("rotation must not end the stream")
 	}
 }
@@ -151,7 +157,7 @@ func TestTailerEndsOnlyWhenPathStaysGone(t *testing.T) {
 	time.Sleep(12 * time.Millisecond)
 	os.Rename(p+".tmp", p)
 	time.Sleep(100 * time.Millisecond)
-	if sink.ends != 0 {
+	if sink.endCount() != 0 {
 		t.Fatal("transient absence ended the stream")
 	}
 	os.Remove(p)
@@ -160,8 +166,8 @@ func TestTailerEndsOnlyWhenPathStaysGone(t *testing.T) {
 	case <-time.After(2 * time.Second):
 		t.Fatal("tailer did not finish after deletion")
 	}
-	if sink.ends != 1 {
-		t.Fatalf("ends=%d want 1", sink.ends)
+	if sink.endCount() != 1 {
+		t.Fatalf("ends=%d want 1", sink.endCount())
 	}
 }
 
@@ -196,19 +202,19 @@ func TestTailerReusedInodeIsANewFile(t *testing.T) {
 	}
 	run()
 	if sink.count() != 2 {
-		t.Fatalf("first file: %v", sink.msgs)
+		t.Fatalf("first file: %v", sink.all())
 	}
 	// same path, same inode, different content (truncate + rewrite stands in for inode reuse)
 	os.WriteFile(p, []byte("2026-09-30T11:00:00.000000000Z stdout F fresh\n"), 0o644)
 	run()
-	if sink.count() != 3 || sink.msgs[2] != "fresh" {
-		t.Fatalf("reused inode must be read from the start: %v", sink.msgs)
+	if sink.count() != 3 || sink.all()[2] != "fresh" {
+		t.Fatalf("reused inode must be read from the start: %v", sink.all())
 	}
 	// and the old content's checkpoint still resumes the old content
 	os.WriteFile(p, []byte(line(0)+line(1)+line(2)), 0o644)
 	run()
-	if sink.count() != 4 || sink.msgs[3] != "line c" {
-		t.Fatalf("checkpoint for the original first line must resume after line b: %v", sink.msgs)
+	if sink.count() != 4 || sink.all()[3] != "line c" {
+		t.Fatalf("checkpoint for the original first line must resume after line b: %v", sink.all())
 	}
 }
 
@@ -228,8 +234,8 @@ func TestTailerAdoptsLegacyCheckpoint(t *testing.T) {
 	defer cancel()
 	go tl.Run(ctx)
 	time.Sleep(150 * time.Millisecond)
-	if sink.count() != 1 || sink.msgs[0] != "line c" {
-		t.Fatalf("legacy resume: %v", sink.msgs)
+	if sink.count() != 1 || sink.all()[0] != "line c" {
+		t.Fatalf("legacy resume: %v", sink.all())
 	}
 	if tl.Key() == Key(p, Inode(st)) || tl.Key() == "" {
 		t.Fatalf("new key expected, got %q", tl.Key())
@@ -256,8 +262,8 @@ func TestTailerTruncationStartsNewIdentity(t *testing.T) {
 	for i := 0; i < 400 && sink.count() < 3; i++ {
 		time.Sleep(10 * time.Millisecond)
 	}
-	if sink.count() != 3 || sink.msgs[2] != "after-truncate" {
-		t.Fatalf("after truncation: %v", sink.msgs)
+	if sink.count() != 3 || sink.all()[2] != "after-truncate" {
+		t.Fatalf("after truncation: %v", sink.all())
 	}
 }
 
@@ -279,10 +285,10 @@ func TestTailerLongFirstLine(t *testing.T) {
 	for i := 0; i < 200 && sink.count() < 2; i++ {
 		time.Sleep(5 * time.Millisecond)
 	}
-	if sink.count() != 2 || len(sink.msgs[0]) != 16384+len("tail-of-big") || sink.msgs[1] != "line b" {
+	if sink.count() != 2 || len(sink.all()[0]) != 16384+len("tail-of-big") || sink.all()[1] != "line b" {
 		t.Fatalf("long first line: count=%d lens=%v", sink.count(), func() []int {
 			var o []int
-			for _, m := range sink.msgs {
+			for _, m := range sink.all() {
 				o = append(o, len(m))
 			}
 			return o

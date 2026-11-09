@@ -1,5 +1,33 @@
 # Changelog
 
+## Unreleased
+
+- Fixed: data race on the agent's counters (`Shipper.Sent/Failed`, `Batcher.Dropped`),
+  written by the shipper and batcher goroutines and read by `/status` and the heartbeat
+  without synchronization; they are atomics now. `Tailer.Key()` is safe to call while the
+  tailer runs. Both found by running the new unit tests under `-race`.
+- Fixed: the hub logs failed catalog updates, object-storage deletes and the WAL checkpoint
+  on close instead of dropping the error (the index stays rebuildable; an unhealthy disk is
+  now visible in the log). Chunk recovery treats a frame whose payload does not decode as
+  corrupt and truncates there instead of indexing it. WAL open fails loudly on a segment
+  file with an unexpected name instead of silently taking sequence 0. Export and tail stop
+  writing once the client is gone. The agent logs a failing health listener and a failed
+  checkpoint save at shutdown; the hub logs when the session key cannot be persisted.
+- Tests: unit coverage for `index` (0 → 91 %), `federation` (0 → 100 %), `tailbus`
+  (0 → 100 %), `hub` config (0 → 100 %), `agent` (0 → 89 %, including a full `Run`
+  against a fake hub), `api` (5 → 93 %) and `enrich` (8 → 97 %); `make test` runs with
+  `-race`.
+- CI: `golangci-lint` v2 (`.golangci.yml`, `make golangci`), unit tests with `-race` and
+  coverage upload to Coveralls, badges in the README. Fixes for every lint finding
+  (US spelling, unchecked errors, dead assignments, tagged switch, HTTP status constants).
+- Release: both images are signed with cosign (keyless) and carry an SPDX SBOM and SLSA
+  provenance (`mode=max`) next to the signed chart; the GitHub release body carries the
+  verify command and the image digests. README documents verification.
+- Bench: `bench/run.sh` reports lines written, lines ingested and spool drain time, and
+  waits for the agent to drain before measuring disk. New numbers on a Linux VM
+  (2 k / 10 k / 30 k lines/s) and 34 days of steady state on a 3-node k3s cluster in
+  `bench/RESULTS.md`; README footprint table updated from them.
+
 ## 1.1.6 — 2026-11-09
 
 - Security: images move to `gcr.io/distroless/static-debian13:nonroot` (the Debian 12 base

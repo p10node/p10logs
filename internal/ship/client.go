@@ -109,13 +109,13 @@ func (c *Client) Push(ctx context.Context, body []byte, stats string) error {
 		return err
 	}
 	defer resp.Body.Close()
-	switch {
-	case resp.StatusCode == 204 || resp.StatusCode == 202 || resp.StatusCode == 200:
+	switch resp.StatusCode {
+	case http.StatusNoContent, http.StatusAccepted, http.StatusOK:
 		return nil
-	case resp.StatusCode == 401 || resp.StatusCode == 403:
+	case http.StatusUnauthorized, http.StatusForbidden:
 		c.reloadToken()
 		return ErrAuth
-	case resp.StatusCode == 413:
+	case http.StatusRequestEntityTooLarge:
 		return ErrTooLarge
 	default:
 		return fmt.Errorf("hub returned %d", resp.StatusCode)

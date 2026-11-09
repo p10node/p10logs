@@ -1,6 +1,11 @@
 # p10logs
 
-[![Artifact Hub](https://img.shields.io/endpoint?url=https://artifacthub.io/badge/repository/p10logs)](https://artifacthub.io/packages/search?repo=p10logs)
+[![CI](https://github.com/p10node/p10logs/actions/workflows/ci.yml/badge.svg)](https://github.com/p10node/p10logs/actions/workflows/ci.yml)
+[![Coverage](https://coveralls.io/repos/github/p10node/p10logs/badge.svg?branch=main)](https://coveralls.io/github/p10node/p10logs?branch=main)
+[![Go Report Card](https://goreportcard.com/badge/github.com/p10node/p10logs)](https://goreportcard.com/report/github.com/p10node/p10logs)
+[![Go Reference](https://pkg.go.dev/badge/github.com/p10node/p10logs.svg)](https://pkg.go.dev/github.com/p10node/p10logs)
+[![Artifact Hub](https://img.shields.io/endpoint?url=https://artifacthub.io/badge/repository/p10logs)](https://artifacthub.io/packages/helm/p10logs/p10logs)
+[![License](https://img.shields.io/github/license/p10node/p10logs)](LICENSE)
 
 **Persistent, multi-cluster Kubernetes pod logs. Nothing else.**
 
@@ -372,13 +377,21 @@ curl -s -u admin:$PW 'http://localhost:8080/api/v1/query?namespace=payments&pod=
   Once any role exists, identities that match none are denied; global `apiTokens` stay
   unrestricted. Federated queries carry the caller's scope to each peer through the
   peer token's own role on that hub.
-- Chart releases are signed with [cosign](https://github.com/sigstore/cosign) (keyless,
-  GitHub Actions OIDC). Verify before installing:
+- Supply chain: the chart and both images are signed with
+  [cosign](https://github.com/sigstore/cosign) (keyless, GitHub Actions OIDC), and the
+  images carry an SPDX SBOM and SLSA provenance attestation built by
+  `release.yml`. Verify before installing:
 
   ```bash
-  cosign verify ghcr.io/p10node/charts/p10logs:<version> \
-    --certificate-identity-regexp='^https://github.com/p10node/p10logs/' \
-    --certificate-oidc-issuer=https://token.actions.githubusercontent.com
+  for ref in ghcr.io/p10node/charts/p10logs:<version> \
+             ghcr.io/p10node/p10logs-hub:<version> \
+             ghcr.io/p10node/p10logs-agent:<version>; do
+    cosign verify "$ref" \
+      --certificate-identity-regexp='^https://github.com/p10node/p10logs/' \
+      --certificate-oidc-issuer=https://token.actions.githubusercontent.com
+  done
+  docker buildx imagetools inspect ghcr.io/p10node/p10logs-hub:<version> \
+    --format '{{ json .SBOM }}'        # or .Provenance
   ```
 
 ### OIDC
@@ -411,19 +424,20 @@ start (set `auth.sessionKeyFile` in `hub.yaml` to keep sessions across restarts)
 ## Resource footprint
 
 p10logs is designed to be the cheapest thing that still persists logs. Measured with
-`bench/run.sh` on a laptop (Apple M1 Pro, local processes, ~180-byte JSON lines; full
-table and caveats in [bench/RESULTS.md](bench/RESULTS.md)); reference numbers are from
-independent 2026 benchmarks (links above).
+`bench/run.sh` on a Linux VM (4 vCPU Xeon E5-2683 v4 @ 2.1 GHz, 4 GiB, Ubuntu 24.04,
+local processes, ~180-byte JSON lines) plus 34 days of steady state on a 3-node k3s
+cluster; full tables and caveats in [bench/RESULTS.md](bench/RESULTS.md). Reference
+numbers are from independent 2026 benchmarks (links above).
 
-|                             | p10logs (measured)                                                                                        | Reference                                                           |
-|-----------------------------|-----------------------------------------------------------------------------------------------------------|---------------------------------------------------------------------|
-| Agent, per node             | 31 MiB RSS / 0.3 % of a core at 2 000 lines/s; 44 MiB / 3.4 % at 10 000 lines/s                           | vlagent 28 MiB, Fluent Bit 78 MiB, Vector 154 MiB at 10 k lines/s   |
-| Hub                         | 58 MiB / 2 % at 2 000 lines/s; 100 MiB / 7 % at 10 000 lines/s (ingest only, memtable budget 128 MiB max) | VictoriaLogs 0.6–2 GiB, Loki 1.5–7 GiB, Elastic / ClickHouse ≥ 4 GB |
-| Disk                        | raw ÷ 7.3–8.7 (zstd level 1, 256 KiB+ frames)                                                             | Loki 501 GiB vs VictoriaLogs 318 GiB for the same 500 GB week       |
-| Idle on a Linux node (kind) | agent 18.5 MiB, hub 24 MiB                                                                                |                                                                     |
-| Images                      | agent 16 MB, hub 23 MB (distroless static)                                                                |                                                                     |
-| API-server load             | zero requests (one node-scoped watch if enrichment is on)                                                 | Dozzle / kubetail: one long-lived stream per container per viewer   |
-| Extra components            | none                                                                                                      | metrics-server, Grafana, Prometheus, object store, ClickHouse, JVM  |
+|                         | p10logs (measured)                                                                                                          | Reference                                                           |
+|-------------------------|-----------------------------------------------------------------------------------------------------------------------------|---------------------------------------------------------------------|
+| Agent, per node         | 27 MiB RSS / 4 % of a 2.1 GHz vCPU at 2 000 lines/s; 40 MiB / 14 % at 10 000; 80 MiB / 23 % at 30 000                       | vlagent 28 MiB, Fluent Bit 78 MiB, Vector 154 MiB at 10 k lines/s   |
+| Hub                     | 50 MiB / 6 % at 2 000 lines/s; 62 MiB / 34 % at 10 000; 107 MiB / 34 % at 30 000 (ingest only, memtable budget 128 MiB max) | VictoriaLogs 0.6–2 GiB, Loki 1.5–7 GiB, Elastic / ClickHouse ≥ 4 GB |
+| Disk                    | raw ÷ 5.9–6.6 on the synthetic generator; ÷ ~8.5 after 34 days of mixed demo workloads (zstd level 1, 256 KiB+ frames)      | Loki 501 GiB vs VictoriaLogs 318 GiB for the same 500 GB week       |
+| 34 days on a 3-node k3s | agents 15–29 MiB / 14–26 mCPU; hub 71 MiB (218 MiB peak) / 25 mCPU at ~2 GB/day, 0 restarts                                 |                                                                     |
+| Images                  | agent 16 MB, hub 23 MB (distroless static)                                                                                  |                                                                     |
+| API-server load         | zero requests (one node-scoped watch if enrichment is on)                                                                   | Dozzle / kubetail: one long-lived stream per container per viewer   |
+| Extra components        | none                                                                                                                        | metrics-server, Grafana, Prometheus, object store, ClickHouse, JVM  |
 
 Why it stays small:
 
@@ -441,7 +455,7 @@ Sizing guide (7-day retention):
 
 | Cluster                | Agents       | Hub              | PVC                             |
 |------------------------|--------------|------------------|---------------------------------|
-| 5 nodes, ~1 GB/day     | 5 × 30 MiB   | ~150 MiB         | 5 Gi                            |
+| 5 nodes, ~1 GB/day     | 5 × 30 MiB   | 100–250 MiB      | 5 Gi                            |
 | 30 nodes, ~15 GB/day   | 30 × 40 MiB  | 400–600 MiB      | 20–30 Gi                        |
 | 200 nodes, ~100 GB/day | 200 × 50 MiB | 1–2 GiB, ~1 core | 150–200 Gi, consider federation |
 
@@ -487,12 +501,14 @@ bench/                               load generator and published numbers
 
 Go 1.26+, CGO disabled (`modernc.org/sqlite`, `klauspost/compress/zstd`,
 `coreos/go-oidc`; no client-go). Images are distroless static, linux/amd64 and
-linux/arm64, built by `.github/workflows/release.yml` on `v*` tags; CI runs unit tests,
-the local e2e, chart lint and the kind e2e on every PR.
+linux/arm64, built by `.github/workflows/release.yml` on `v*` tags (signed, with SBOM and
+provenance). CI runs `golangci-lint`, unit tests with `-race` and coverage (Coveralls),
+the local e2e, chart lint and both kind e2e suites on every PR.
 
 ```bash
 make build           # bin/p10logs-agent, bin/p10logs-hub
-make test            # unit tests (CRI parser, tailer rotation, chunk recovery, store, query grammar)
+make test            # unit tests (-race; CRI parser, tailer rotation, WAL/chunk recovery, store, index, query, API, auth, federation)
+make golangci        # golangci-lint (same config as CI, .golangci.yml)
 make e2e             # real agent + hub over a fake /var/log/pods tree, 11 scenarios (12 with Docker: S3 offload)
 make e2e-kind        # same on a single-node kind cluster with the chart and locally built images
 make e2e-multi       # 3-node hub cluster + spoke cluster + demo apps on kind; prints UI URL and password

@@ -131,8 +131,8 @@ func TestRateLimitMarker(t *testing.T) {
 	rec(b, 100, "after")
 	b.flush(true, false)
 	secs, ents := decode(t, take(t, b))
-	if b.Dropped != 8 {
-		t.Fatalf("dropped=%d want 8", b.Dropped)
+	if b.Dropped.Load() != 8 {
+		t.Fatalf("dropped=%d want 8", b.Dropped.Load())
 	}
 	if len(ents) != 4 || ents[2].M != "p10logs: dropped 8 lines (rate limit)" || ents[2].S != "e" || ents[3].M != "after" {
 		t.Fatalf("entries: %+v", ents)

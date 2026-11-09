@@ -4,6 +4,14 @@ on:
   push:
     branches: [main]
 jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with: { go-version-file: go.mod }
+      - uses: golangci/golangci-lint-action@v8
+        with: { version: v2.12 }
   test:
     runs-on: ubuntu-latest
     steps:
@@ -11,7 +19,12 @@ jobs:
       - uses: actions/setup-go@v5
         with: { go-version-file: go.mod }
       - run: go vet ./...
-      - run: go test ./...
+      - run: go test -race -covermode=atomic -coverprofile=coverage.out ./...
+      - uses: coverallsapp/github-action@v2
+        with:
+          file: coverage.out
+          format: golang
+          fail-on-error: false
       - run: make build
       - run: ./hack/e2e-local.sh
   chart:

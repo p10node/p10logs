@@ -100,12 +100,12 @@ func TestIngestDedupQueryRecover(t *testing.T) {
 		t.Fatalf("bloom false negative: %+v", res)
 	}
 	// labels: ingest with enrichment, select by label
-	lb := `{"k":"payments/api-2/uid-2/app","f":"g","o":[0,10],"r":0,"l":{"app":"api","team":"pay"}}` + "\n" + `{"t":1700000000000000000,"s":"o","m":"labelled"}` + "\n"
+	lb := `{"k":"payments/api-2/uid-2/app","f":"g","o":[0,10],"r":0,"l":{"app":"api","team":"pay"}}` + "\n" + `{"t":1700000000000000000,"s":"o","m":"labeled"}` + "\n"
 	if _, err := st2.Ingest("prod", "n", strings.NewReader(lb)); err != nil {
 		t.Fatal(err)
 	}
 	res, _ = st2.Query(context.Background(), index.Selector{Labels: map[string]string{"team": "pay"}}, 0, 1<<62, query.Compile(""), 10)
-	if len(res.Lines) != 1 || res.Lines[0].Msg != "labelled" {
+	if len(res.Lines) != 1 || res.Lines[0].Msg != "labeled" {
 		t.Fatalf("label selector: %+v", res)
 	}
 	st2.Close()

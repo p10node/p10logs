@@ -67,11 +67,15 @@ func Open(dir string, fn func(Record) error) (*Log, error) {
 				return nil, err
 			}
 			if n == 0 && size > 0 { // wholly corrupt: start fresh
-				f.Truncate(0)
+				if err := f.Truncate(0); err != nil {
+					return nil, err
+				}
 				size = 0
 			}
 			l.f, l.size = f, size
-			fmt.Sscanf(filepath.Base(p), "%06d.wal", &l.seg)
+			if _, err := fmt.Sscanf(filepath.Base(p), "%06d.wal", &l.seg); err != nil {
+				return nil, fmt.Errorf("wal: unexpected segment name %q: %w", filepath.Base(p), err)
+			}
 		}
 	}
 	if l.f == nil {

@@ -77,15 +77,16 @@ func Open(path string) (*DB, error) {
 	if err != nil {
 		return nil, err
 	}
-	db.SetMaxOpenConns(1) // serialise writers; reads are fast enough
+	db.SetMaxOpenConns(1) // serialize writers; reads are fast enough
 	if _, err := db.Exec(schema); err != nil {
 		db.Close()
 		return nil, err
 	}
-	db.Exec(`ALTER TABLE streams ADD COLUMN labels TEXT`)             // v0.2 migration; error = column exists
-	db.Exec(`ALTER TABLE streams ADD COLUMN wseq INTEGER DEFAULT 0`)  // v0.3 migration
-	db.Exec(`ALTER TABLE chunks ADD COLUMN remote INTEGER DEFAULT 0`) // v1.0: object-storage offload
-	db.Exec(`ALTER TABLE chunks ADD COLUMN local INTEGER DEFAULT 1`)
+	// migrations: ALTER fails when the column already exists, which is the normal case
+	_, _ = db.Exec(`ALTER TABLE streams ADD COLUMN labels TEXT`)             // v0.2
+	_, _ = db.Exec(`ALTER TABLE streams ADD COLUMN wseq INTEGER DEFAULT 0`)  // v0.3
+	_, _ = db.Exec(`ALTER TABLE chunks ADD COLUMN remote INTEGER DEFAULT 0`) // v1.0: object-storage offload
+	_, _ = db.Exec(`ALTER TABLE chunks ADD COLUMN local INTEGER DEFAULT 1`)
 	return &DB{db: db}, nil
 }
 
@@ -302,7 +303,7 @@ func (d *DB) ListStreams(ctx context.Context, s Selector, limit int) ([]Stream, 
 		}
 		st.Ended = ended == 1
 		if labels != "" {
-			json.Unmarshal([]byte(labels), &st.Labels)
+			_ = json.Unmarshal([]byte(labels), &st.Labels) // unreadable labels: shown as none
 		}
 		if s.Allow != nil && !s.Allow(st.Cluster, st.Namespace) {
 			continue
@@ -341,7 +342,7 @@ type Stats struct {
 	DayBytes              map[string]int64
 }
 
-// Stats summarises the catalog.
+// Stats summarizes the catalog.
 func (d *DB) Stats() (Stats, error) {
 	var s Stats
 	s.DayBytes = map[string]int64{}
@@ -360,7 +361,9 @@ func (d *DB) Stats() (Stats, error) {
 	for rows.Next() {
 		var day string
 		var b int64
-		rows.Scan(&day, &b)
+		if err := rows.Scan(&day, &b); err != nil {
+			return s, err
+		}
 		s.Days = append(s.Days, day)
 		s.DayBytes[day] = b
 	}
@@ -384,7 +387,9 @@ func (d *DB) DeleteOrphanStreams(cutoff int64) (int64, error) {
 	}
 	n, _ := res.RowsAffected()
 	if n > 0 {
-		d.db.Exec(`DELETE FROM cursors WHERE stream_id NOT IN (SELECT id FROM streams)`)
+		if _, err := d.db.Exec(`DELETE FROM cursors WHERE stream_id NOT IN (SELECT id FROM streams)`); err != nil {
+			return n, err
+		}
 	}
 	return n, nil
 }

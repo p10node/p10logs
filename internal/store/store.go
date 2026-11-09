@@ -100,6 +100,15 @@ type AgentInfo struct {
 	RSS        int64  `json:"rss,omitempty"`
 }
 
+// warn logs a failed best-effort side step (catalog update, object delete, WAL
+// checkpoint on close). The index is derived state that --rebuild-index recreates, so
+// these never lose log data; they are logged so an unhealthy disk is visible.
+func (s *Store) warn(err error, msg string, args ...any) {
+	if err != nil && s.Log != nil {
+		s.Log.Warn(msg, append(args, "err", err)...)
+	}
+}
+
 // Store is the engine.
 type Store struct {
 	cfg  Config
@@ -125,7 +134,7 @@ type Store struct {
 	started   time.Time
 }
 
-// Open initialises the store: recovers open chunks, then replays the WAL.
+// Open initializes the store: recovers open chunks, then replays the WAL.
 func Open(cfg Config, log *slog.Logger) (*Store, error) {
 	if cfg.TargetBytes == 0 {
 		cfg.TargetBytes = 4 << 20
@@ -206,7 +215,7 @@ func Open(cfg Config, log *slog.Logger) (*Store, error) {
 func (s *Store) Close() error {
 	s.mu.Lock()
 	s.flushAll()
-	s.wal.Checkpoint()
+	s.warn(s.wal.Checkpoint(), "wal checkpoint on close")
 	s.wal.Close()
 	for _, oc := range s.open {
 		oc.w.Close()
@@ -306,7 +315,7 @@ func (s *Store) setCursor(sid int64, file string, end int64) {
 	k := strconv.FormatInt(sid, 10) + "|" + file
 	if end > s.curs[k] {
 		s.curs[k] = end
-		s.Idx.SetCursor(sid, file, end)
+		s.warn(s.Idx.SetCursor(sid, file, end), "index: set cursor")
 	}
 }
 
@@ -360,7 +369,7 @@ func (s *Store) Agents() []AgentInfo {
 	return out
 }
 
-// IngestResult summarises one push.
+// IngestResult summarizes one push.
 type IngestResult struct {
 	Lines, Deduped, Sections int
 }
@@ -519,7 +528,7 @@ func (s *Store) flushStream(sid int64) {
 	}
 	oc.last = time.Now()
 	s.wseq[sid] = m.wseq
-	s.Idx.SetWSeq(sid, m.wseq)
+	s.warn(s.Idx.SetWSeq(sid, m.wseq), "index: set wseq")
 	s.memB -= m.bytes
 	delete(s.mem, sid)
 	if oc.w.Size() >= s.cfg.TargetBytes {
@@ -682,7 +691,7 @@ func (s *Store) Offload(ctx context.Context) error {
 		if err := s.cfg.Object.Put(ctx, s.relKey(c.Path), b); err != nil {
 			return err
 		}
-		s.Idx.MarkRemote(c.ID)
+		s.warn(s.Idx.MarkRemote(c.ID), "index: mark remote", "chunk", c.Path)
 	}
 	if len(cands) > 0 {
 		s.Log.Info("offloaded chunks to object storage", "count", len(cands))
@@ -701,7 +710,7 @@ func (s *Store) evictLocal(capB int64) int {
 		}
 		for _, c := range cands {
 			os.Remove(c.Path)
-			s.Idx.MarkLocal(c.ID, false)
+			s.warn(s.Idx.MarkLocal(c.ID, false), "index: mark evicted", "chunk", c.Path)
 			n++
 			if s.DiskUsed() <= capB {
 				break
@@ -724,7 +733,7 @@ func (s *Store) localPath(ctx context.Context, path string) (string, error) {
 	cp := filepath.Join(s.cfg.Dir, "cache", filepath.FromSlash(key))
 	if _, err := os.Stat(cp); err == nil {
 		now := time.Now()
-		os.Chtimes(cp, now, now) // LRU touch
+		_ = os.Chtimes(cp, now, now) // LRU touch, best effort
 		return cp, nil
 	}
 	b, err := s.cfg.Object.Get(ctx, key, 0, -1)
@@ -754,7 +763,7 @@ func (s *Store) trimCache() {
 	}
 	var files []f
 	var total int64
-	filepath.WalkDir(root, func(p string, d fs.DirEntry, err error) error {
+	_ = filepath.WalkDir(root, func(p string, d fs.DirEntry, err error) error { // callback never fails
 		if err == nil && !d.IsDir() {
 			if st, e := d.Info(); e == nil {
 				files = append(files, f{p, st.ModTime(), st.Size()})
@@ -789,7 +798,7 @@ func (s *Store) deleteRemote(prefix string) {
 	defer cancel()
 	for _, c := range cs {
 		if c.Remote {
-			s.cfg.Object.Delete(ctx, s.relKey(c.Path))
+			s.warn(s.cfg.Object.Delete(ctx, s.relKey(c.Path)), "object delete", "key", s.relKey(c.Path))
 		}
 	}
 }
@@ -1060,7 +1069,8 @@ func (s *Store) Retention() error {
 						}
 						s.deleteRemote(p + string(filepath.Separator))
 						os.RemoveAll(p)
-						s.Idx.DeleteChunksByPrefix(p + string(filepath.Separator))
+						_, err := s.Idx.DeleteChunksByPrefix(p + string(filepath.Separator))
+						s.warn(err, "index: delete day", "dir", p)
 					}
 				}
 			}
@@ -1185,13 +1195,13 @@ func (s *Store) RebuildIndex() error {
 			return nil
 		}
 		st, _ := os.Stat(p)
-		s.Idx.InsertChunk(index.Chunk{StreamID: sid, Path: p, Day: dayOf(p), MinTS: ft.MinTS, MaxTS: ft.MaxTS, Lines: ft.Lines, Bytes: st.Size()})
+		s.warn(s.Idx.InsertChunk(index.Chunk{StreamID: sid, Path: p, Day: dayOf(p), MinTS: ft.MinTS, MaxTS: ft.MaxTS, Lines: ft.Lines, Bytes: st.Size()}), "index: insert chunk", "chunk", p)
 		if ft.File != "" && ft.MaxTS >= latest[sid].ts {
 			latest[sid] = cur{sid, ft.File, ft.Off, ft.MaxTS}
 		}
 		if ft.WSeq > s.wseq[sid] {
 			s.wseq[sid] = ft.WSeq
-			s.Idx.SetWSeq(sid, ft.WSeq)
+			s.warn(s.Idx.SetWSeq(sid, ft.WSeq), "index: set wseq")
 		}
 		n++
 		return nil
@@ -1235,13 +1245,13 @@ func (s *Store) RebuildIndex() error {
 			if err != nil {
 				continue
 			}
-			s.Idx.InsertChunk(index.Chunk{StreamID: sid, Path: p, Day: dayOf(p), MinTS: ft.MinTS, MaxTS: ft.MaxTS, Lines: ft.Lines, Bytes: o.Size, Remote: true, Local: false})
+			s.warn(s.Idx.InsertChunk(index.Chunk{StreamID: sid, Path: p, Day: dayOf(p), MinTS: ft.MinTS, MaxTS: ft.MaxTS, Lines: ft.Lines, Bytes: o.Size, Remote: true, Local: false}), "index: insert remote chunk", "chunk", p)
 			if ft.File != "" && ft.MaxTS >= latest[sid].ts {
 				latest[sid] = cur{sid, ft.File, ft.Off, ft.MaxTS}
 			}
 			if ft.WSeq > s.wseq[sid] {
 				s.wseq[sid] = ft.WSeq
-				s.Idx.SetWSeq(sid, ft.WSeq)
+				s.warn(s.Idx.SetWSeq(sid, ft.WSeq), "index: set wseq")
 			}
 			remote++
 		}
@@ -1250,7 +1260,7 @@ func (s *Store) RebuildIndex() error {
 		}
 	}
 	for _, c := range latest {
-		s.Idx.SetCursor(c.sid, c.file, c.off)
+		s.warn(s.Idx.SetCursor(c.sid, c.file, c.off), "index: set cursor")
 	}
 	// open chunks (already loaded) re-register their streams, cursors and wseq
 	for sid, oc := range s.open {
@@ -1261,11 +1271,11 @@ func (s *Store) RebuildIndex() error {
 			s.open[nsid] = oc
 		}
 		if lm := oc.w.LastMeta(); lm != nil {
-			s.Idx.SetCursor(oc.streamID, lm.File, lm.Off[1])
+			s.warn(s.Idx.SetCursor(oc.streamID, lm.File, lm.Off[1]), "index: set cursor")
 		}
 		if oc.w.WSeq > s.wseq[oc.streamID] {
 			s.wseq[oc.streamID] = oc.w.WSeq
-			s.Idx.SetWSeq(oc.streamID, oc.w.WSeq)
+			s.warn(s.Idx.SetWSeq(oc.streamID, oc.w.WSeq), "index: set wseq")
 		}
 	}
 	// memtables: discard and re-derive from the WAL with the rebuilt high-water marks
@@ -1286,7 +1296,7 @@ func (s *Store) RebuildIndex() error {
 	return nil
 }
 
-// CheckReport summarises an integrity check of the data directory.
+// CheckReport summarizes an integrity check of the data directory.
 type CheckReport struct {
 	SealedChunks int      `json:"sealed_chunks"`
 	OpenChunks   int      `json:"open_chunks"`
@@ -1306,7 +1316,7 @@ func (s *Store) Check() CheckReport {
 	var r CheckReport
 	root := filepath.Join(s.cfg.Dir, "days")
 	onDisk := map[string]bool{}
-	filepath.WalkDir(root, func(p string, d fs.DirEntry, err error) error {
+	_ = filepath.WalkDir(root, func(p string, d fs.DirEntry, err error) error { // callback never fails
 		if err != nil || d.IsDir() {
 			return nil
 		}

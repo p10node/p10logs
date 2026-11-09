@@ -80,7 +80,7 @@ func main() {
 	}
 	if *check {
 		rep := st.Check()
-		json.NewEncoder(os.Stdout).Encode(rep)
+		_ = json.NewEncoder(os.Stdout).Encode(rep)
 		st.Idx.Close()
 		if !rep.OK {
 			os.Exit(2)
@@ -118,8 +118,12 @@ func main() {
 	if len(sessionKey) < 32 { // generate once so sessions survive restarts
 		sessionKey = make([]byte, 32)
 		rand.Read(sessionKey)
-		if err := os.MkdirAll(filepath.Dir(cfg.Auth.SessionKeyFile), 0o700); err == nil {
-			os.WriteFile(cfg.Auth.SessionKeyFile, sessionKey, 0o600)
+		werr := os.MkdirAll(filepath.Dir(cfg.Auth.SessionKeyFile), 0o700)
+		if werr == nil {
+			werr = os.WriteFile(cfg.Auth.SessionKeyFile, sessionKey, 0o600)
+		}
+		if werr != nil {
+			log.Warn("session key not persisted; logins will not survive a restart", "path", cfg.Auth.SessionKeyFile, "err", werr)
 		}
 	}
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
@@ -153,6 +157,8 @@ func main() {
 	log.Info("shutting down")
 	sctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
-	hs.Shutdown(sctx)
+	if err := hs.Shutdown(sctx); err != nil {
+		log.Warn("http shutdown", "err", err)
+	}
 	st.Close()
 }

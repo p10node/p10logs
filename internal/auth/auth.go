@@ -395,7 +395,7 @@ func (a *Auth) Routes(mux *http.ServeMux) {
 	mux.HandleFunc("/auth/me", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		_, mc := a.session(r)
-		json.NewEncoder(w).Encode(map[string]any{"user": a.User(r), "mode": a.cfg.Mode, "must_change": mc, "local": a.cfg.Mode == "basic" && a.users != nil})
+		_ = json.NewEncoder(w).Encode(map[string]any{"user": a.User(r), "mode": a.cfg.Mode, "must_change": mc, "local": a.cfg.Mode == "basic" && a.users != nil})
 	})
 	mux.HandleFunc("/auth/logout", func(w http.ResponseWriter, r *http.Request) {
 		http.SetCookie(w, &http.Cookie{Name: cookieName, Value: "", Path: "/", MaxAge: -1, HttpOnly: true, SameSite: http.SameSiteLaxMode, Secure: secure(r)})

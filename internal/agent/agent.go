@@ -2,6 +2,7 @@ package agent
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
 	"net/http"
@@ -18,7 +19,7 @@ import (
 // Version is set at build time.
 var Version = "dev"
 
-// Run starts the agent and blocks until ctx is cancelled.
+// Run starts the agent and blocks until ctx is canceled.
 func Run(ctx context.Context, cfg *Config, log *slog.Logger) error {
 	node := os.Getenv("NODE_NAME")
 	if node == "" {
@@ -72,10 +73,14 @@ func Run(ctx context.Context, cfg *Config, log *slog.Logger) error {
 	mux.HandleFunc("/healthz", func(w http.ResponseWriter, r *http.Request) { w.WriteHeader(204) })
 	mux.HandleFunc("/readyz", func(w http.ResponseWriter, r *http.Request) { w.WriteHeader(204) })
 	mux.HandleFunc("/status", func(w http.ResponseWriter, r *http.Request) {
-		fmt.Fprintf(w, "files=%d lag_bytes=%d spool_bytes=%d dropped=%d sent=%d failed=%d\n", disc.Active(), disc.Lag(), spool.Size(), batcher.Dropped+spool.Dropped.Load(), shipper.Sent, shipper.Failed)
+		fmt.Fprintf(w, "files=%d lag_bytes=%d spool_bytes=%d dropped=%d sent=%d failed=%d\n", disc.Active(), disc.Lag(), spool.Size(), batcher.Dropped.Load()+spool.Dropped.Load(), shipper.Sent.Load(), shipper.Failed.Load())
 	})
 	hs := &http.Server{Addr: cfg.Health, Handler: mux}
-	go hs.ListenAndServe()
+	go func() {
+		if err := hs.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
+			log.Error("health listener failed", "addr", cfg.Health, "err", err)
+		}
+	}()
 
 	var wg sync.WaitGroup
 	bctx, bcancel := context.WithCancel(context.Background()) // batcher outlives discovery so the final flush ships
@@ -97,7 +102,9 @@ func Run(ctx context.Context, cfg *Config, log *slog.Logger) error {
 			log.Info("shutting down: flushing")
 			bcancel()
 			wg.Wait()
-			pos.Save()
+			if err := pos.Save(); err != nil {
+				log.Warn("positions save on shutdown", "err", err)
+			}
 			hs.Close()
 			return nil
 		case <-sv.C:
@@ -105,7 +112,7 @@ func Run(ctx context.Context, cfg *Config, log *slog.Logger) error {
 				log.Error("positions save", "err", err)
 			}
 		case <-hb.C:
-			stats := fmt.Sprintf("files=%d;lag_bytes=%d;spool_bytes=%d;dropped=%d", disc.Active(), disc.Lag(), spool.Size(), batcher.Dropped+spool.Dropped.Load())
+			stats := fmt.Sprintf("files=%d;lag_bytes=%d;spool_bytes=%d;dropped=%d", disc.Active(), disc.Lag(), spool.Size(), batcher.Dropped.Load()+spool.Dropped.Load())
 			hctx, c := context.WithTimeout(ctx, 5*time.Second)
 			if err := client.Push(hctx, nil, stats); err != nil {
 				if hbFails%30 == 0 { // first failure, then every ~5 minutes at 10s interval

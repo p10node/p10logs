@@ -25,7 +25,7 @@ func (f *Fake) Len() int { f.mu.Lock(); defer f.mu.Unlock(); return len(f.objs) 
 
 func (f *Fake) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if !strings.HasPrefix(r.Header.Get("Authorization"), "AWS4-HMAC-SHA256 ") {
-		http.Error(w, "no sigv4", 403)
+		http.Error(w, "no sigv4", http.StatusForbidden)
 		return
 	}
 	// path-style: /bucket/key
@@ -59,7 +59,7 @@ func (f *Fake) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		for _, k := range keys {
 			out.Contents = append(out.Contents, c{k, int64(len(f.objs[k]))})
 		}
-		xml.NewEncoder(w).Encode(out)
+		_ = xml.NewEncoder(w).Encode(out)
 	case r.Method == http.MethodPut && key == "":
 		w.WriteHeader(200) // create bucket
 	case r.Method == http.MethodPut:

@@ -178,7 +178,7 @@ func render(w http.ResponseWriter, code int, p page) {
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	w.Header().Set("Cache-Control", "no-store")
 	w.WriteHeader(code)
-	pageTpl.Execute(w, p)
+	_ = pageTpl.Execute(w, p)
 }
 
 func safeNext(v string) string {

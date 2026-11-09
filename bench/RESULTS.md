@@ -9,6 +9,65 @@ run (100 % = one core). "Ratio" is raw log bytes divided by bytes on the hub's d
 Numbers below are from a developer laptop (see the machine line), not from a Linux
 container with cgroup limits; treat them as relative, and re-run on your own hardware.
 
+## 2026-11-09 · v1.1.6 · Linux VM, 4 vCPU Xeon E5-2683 v4 @ 2.1 GHz, 4 GiB, Ubuntu 24.04.5 (kernel 6.8)
+
+Incus/KVM virtual machine on a shared host; agent, hub and the generator run as local
+processes inside the VM, nothing else on it. `bench/run.sh` now also reports the lines the
+generator wrote, the lines the hub ingested, and the seconds the agent needed to drain its
+disk spool after the generator stopped. CPU is the mean of `ps %cpu`, which on Linux is
+cumulative CPU time over elapsed time.
+
+| lines/s | pods | dur | written | ingested | drain | agent RSS | agent CPU | hub RSS | hub CPU | raw | on disk | ratio |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|
+|   2000 |   20 |  60s |   119500 |   119500 |   6s |   26.6 MiB |   4.1% |   49.6 MiB |   6.2% |   28.2 MiB |    4.3 MiB |  6.6x |
+|  10000 |   50 |  60s |   598000 |   598000 |   3s |   39.8 MiB |  14.3% |   62.4 MiB |  33.7% |  141.0 MiB |   22.5 MiB |  6.3x |
+|  30000 |  100 |  60s |  1795500 |  1795500 |  33s |   80.3 MiB |  22.6% |  106.8 MiB |  33.5% |  423.7 MiB |   71.9 MiB |  5.9x |
+
+Notes:
+
+- RSS is lower than on macOS (Go's allocator returns memory to Linux more eagerly) and
+  CPU is higher: one of these 2.1 GHz Xeon vCPUs does roughly a third of the work of an
+  M1 Pro core per second.
+- At 30 000 lines/s the generator kept its rate (29.9 k lines/s written), the agent shipped
+  about 15 k lines/s live and put the rest in its disk spool (`agent.buffer`, default
+  256 MiB), then drained the backlog in 33 s once the generator stopped. Nothing was lost
+  or duplicated (written = ingested); the backlog is visible as `spool_bytes` on the
+  agent's `/status` and on the Agents page. The live ceiling of one agent comes from the
+  batch shape, not CPU: a batch is at most 1 MiB / 5 000 lines (`batch.maxBytes`,
+  `batch.maxLines`) and the shipper pushes batches one at a time, so the ceiling is one
+  batch per push round trip (zstd + HTTP + the hub's WAL fsync, ~330 ms on this VM's
+  disk); `ship.maxInFlight` (default 4) only bounds how many finished batches may queue
+  for the shipper before the reader pauses. Raise `batch.maxLines` / `batch.maxBytes` if a
+  single node really produces more than ~15 k lines/s. The hub stayed at a third of one
+  vCPU throughout, so ingest was not its bottleneck.
+- The compression ratio is lower than in the 2026-10-01 rows (5.9–6.6× vs 7.3–8.7×) and
+  more honest: those rows measured `hub/days` 3 s after the generator stopped, while part
+  of the data was still in the memtable and WAL; the drain wait now lets the hub seal
+  what it received before the directory is measured.
+
+### Steady state on a real cluster · k3s v1.36, 3 nodes, 34 days
+
+p10logs 1.1.2 (agent and hub core are unchanged through 1.1.6; later releases changed the
+UI, chart and dependencies) on the Incus k3s cluster used for development: 3 VMs with
+4 vCPU / 8 GiB each, demo workloads from `hack/demo/` (JSON API + sidecar, crash loops with
+Go panics, nginx access logs, a 400 lines/s spammer, 20 KiB lines, Java stack traces,
+CronJob and Job pods), enrichment and multiline on, 8-day retention. Read from
+`/api/v1/status`, `/proc/<pid>/status` on the nodes and `kubectl top` on 2026-11-09.
+
+| | |
+|---|---|
+| Uptime | 33.8 days, 0 restarts (hub and all 3 agents) |
+| Ingested | 651.7 M lines, 67.4 GB raw since start (~2.0 GB/day; 223 lines/s at the time of reading) |
+| Catalog | 5 404 streams, 7 209 chunks, 8 days kept |
+| On disk | 1.88 GB for the 8 retained days (~16 GB raw → ≈8.5×), WAL 49 MB |
+| Hub RSS | 71 MiB at the time of reading, 218 MiB peak (`VmHWM`); `kubectl top` 229 Mi includes page cache. Chart defaults: request 128 Mi, limit 1 Gi |
+| Hub CPU | 25 mCPU (`kubectl top`) |
+| Agent RSS | 15, 28 and 29 MiB on the three nodes, 32 MiB peak; 14–26 mCPU each |
+
+The hub peak comes from the memtable budget (`storage.memtable.maxBytes`, default
+128 MiB) plus WAL replay buffers after the one restart boundary the cluster saw at
+install time; steady-state RSS sits well below the 128 Mi request.
+
 ## 2026-10-01 · v0.2 · Apple M1 Pro, 16 GB, macOS 27 (local processes, no cgroup limits)
 
 | lines/s | pods | dur | ingested | agent RSS | agent CPU | hub RSS | hub CPU | raw | on disk | ratio |

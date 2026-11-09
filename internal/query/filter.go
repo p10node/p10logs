@@ -76,11 +76,22 @@ func Compile(q string) *Filter {
 
 func isKey(s string) bool {
 	for i, c := range s {
-		if !(c == '_' || c == '.' || c >= 'a' && c <= 'z' || c >= 'A' && c <= 'Z' || (i > 0 && c >= '0' && c <= '9')) {
+		if !isKeyRune(c, i > 0) {
 			return false
 		}
 	}
 	return s != ""
+}
+
+// isKeyRune accepts [A-Za-z_.] anywhere and digits after the first character.
+func isKeyRune(c rune, notFirst bool) bool {
+	switch {
+	case c == '_', c == '.', c >= 'a' && c <= 'z', c >= 'A' && c <= 'Z':
+		return true
+	case notFirst && c >= '0' && c <= '9':
+		return true
+	}
+	return false
 }
 
 // Empty reports whether the filter matches everything.

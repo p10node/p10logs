@@ -106,13 +106,11 @@ func (d *Discoverer) Lag() int64 {
 
 func (d *Discoverer) scan(ctx context.Context) {
 	files, _ := filepath.Glob(filepath.Join(d.Dir, "*", "*", "*.log"))
-	seen := map[string]bool{}
 	for _, p := range files {
 		meta, ok := cri.ParsePath(p)
 		if !ok || !d.Filter.Allow(meta) {
 			continue
 		}
-		seen[p] = true
 		st, err := os.Stat(p)
 		if err != nil {
 			continue
@@ -132,7 +130,7 @@ func (d *Discoverer) scan(ctx context.Context) {
 		}
 		// new file: the tailer resumes from the checkpoint of the file's FileKey
 		if d.Backfill && !d.Positions.HasAnyWithPrefix(filepath.Dir(p)+"/") {
-			d.backfill(ctx, p, meta)
+			d.backfill(ctx, p)
 		}
 		d.startTailer(ctx, p, ino, meta, 0)
 	}
@@ -143,9 +141,8 @@ func (d *Discoverer) scan(ctx context.Context) {
 		case <-t.Done():
 			delete(d.tailers, p)
 		default:
-			if !seen[p] {
-				// file no longer listed (deleted or filtered): tailer will notice on its next stat
-			}
+			// still running; a file that is no longer listed (deleted or filtered) is
+			// noticed by its own tailer on the next stat
 		}
 	}
 	d.mu.Unlock()
@@ -175,7 +172,7 @@ func (d *Discoverer) startTailer(ctx context.Context, p string, ino uint64, meta
 }
 
 // backfill reads rotated .gz files of a container the first time it is seen.
-func (d *Discoverer) backfill(ctx context.Context, live string, meta cri.Meta) {
+func (d *Discoverer) backfill(ctx context.Context, live string) {
 	dir := filepath.Dir(live)
 	gzs, _ := filepath.Glob(filepath.Join(dir, "*.log.*.gz"))
 	sort.Strings(gzs) // name carries YYYYMMDD-HHMMSS → chronological

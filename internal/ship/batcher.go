@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"regexp"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/klauspost/compress/zstd"
@@ -78,7 +79,7 @@ type Batcher struct {
 	lines   int
 	re      *regexp.Regexp
 	enc     *zstd.Encoder
-	Dropped int64 // rate-limited lines, for stats
+	Dropped atomic.Int64 // rate-limited lines, for stats; read concurrently by /status
 	// LabelsFor returns enrichment labels for a pod uid (nil = none). Optional.
 	LabelsFor func(uid string) map[string]string
 }
@@ -149,7 +150,7 @@ func (b *Batcher) Record(r tail.Record) {
 		s.last = now
 		if s.tokens < 1 {
 			s.dropped++
-			b.Dropped++
+			b.Dropped.Add(1)
 			s.end = r.EndOff
 			b.mu.Unlock()
 			return
@@ -248,13 +249,13 @@ func (b *Batcher) flush(withPending, final bool) {
 		if b.LabelsFor != nil {
 			labels = b.LabelsFor(s.meta.UID)
 		}
-		enc.Encode(wire.Section{Key: s.meta.StreamKey(), File: s.file, Off: [2]int64{s.start, s.end}, Restart: s.meta.Restart, End: s.ended, Labels: labels})
+		_ = enc.Encode(wire.Section{Key: s.meta.StreamKey(), File: s.file, Off: [2]int64{s.start, s.end}, Restart: s.meta.Restart, End: s.ended, Labels: labels})
 		for _, e := range s.entries {
 			st := "o"
 			if e.stderr {
 				st = "e"
 			}
-			enc.Encode(wire.Entry{T: e.t, S: st, M: string(e.msg)})
+			_ = enc.Encode(wire.Entry{T: e.t, S: st, M: string(e.msg)})
 		}
 		bt.Lines += len(s.entries)
 		bt.Acks = append(bt.Acks, Ack{Key: s.file, EndOff: s.end})

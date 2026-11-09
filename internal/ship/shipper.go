@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"log/slog"
+	"sync/atomic"
 	"time"
 )
 
@@ -15,8 +16,8 @@ type Shipper struct {
 	Spool  *Spool
 	OnAck  func([]Ack)
 	Log    *slog.Logger
-	Sent   int64
-	Failed int64
+	Sent   atomic.Int64 // read by the agent's /status handler concurrently
+	Failed atomic.Int64
 }
 
 // Run consumes batches until in is closed. The spool is retried on a timer as
@@ -73,7 +74,7 @@ func (s *Shipper) Run(ctx context.Context, in <-chan *Batch) {
 				continue
 			}
 			backoff = time.Second
-			s.Sent++
+			s.Sent.Add(1)
 			s.OnAck(b.Acks)
 		}
 	}
@@ -89,7 +90,7 @@ func (s *Shipper) send(ctx context.Context, body []byte) error {
 		if errors.Is(err, ErrTooLarge) {
 			return err
 		}
-		s.Failed++
+		s.Failed.Add(1)
 		sleepCtx(ctx, time.Duration(i+1)*500*time.Millisecond)
 		if ctx.Err() != nil {
 			return err

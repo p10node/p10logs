@@ -103,12 +103,12 @@ func (s *Server) Handler() http.Handler {
 func jsonErr(w http.ResponseWriter, code int, msg string) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(code)
-	json.NewEncoder(w).Encode(map[string]string{"error": msg})
+	_ = json.NewEncoder(w).Encode(map[string]string{"error": msg})
 }
 
 func writeJSON(w http.ResponseWriter, v any) {
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(v)
+	_ = json.NewEncoder(w).Encode(v)
 }
 
 // ---- ingest ----
@@ -693,7 +693,9 @@ func (s *Server) export(w http.ResponseWriter, r *http.Request) {
 	enc := json.NewEncoder(bw)
 	for _, l := range lines {
 		if format == "ndjson" {
-			enc.Encode(l)
+			if err := enc.Encode(l); err != nil {
+				return // client went away
+			}
 			continue
 		}
 		fmt.Fprintf(bw, "%s %s %s\n", l.T, l.Stream, l.M)
@@ -747,7 +749,7 @@ func (s *Server) tail(w http.ResponseWriter, r *http.Request) {
 	sub := s.st.Bus.Subscribe(s.cfg.TailBuffer, func(id int64) bool { mu.RLock(); defer mu.RUnlock(); return ids[id] })
 	defer s.st.Bus.Unsubscribe(sub)
 
-	// peer tails feed pre-serialised events into one channel
+	// peer tails feed pre-serialized events into one channel
 	peerEv := make(chan []byte, s.cfg.TailBuffer)
 	var peerDropped int64
 	var pdMu sync.Mutex
@@ -809,7 +811,9 @@ func (s *Server) tail(w http.ResponseWriter, r *http.Request) {
 			return
 		case <-ping.C:
 			fmt.Fprint(buf, ": ping\n\n")
-			buf.Flush()
+			if buf.Flush() != nil {
+				return // client went away
+			}
 			fl.Flush()
 		case <-rf.C:
 			refresh()
@@ -850,7 +854,9 @@ func (s *Server) tail(w http.ResponseWriter, r *http.Request) {
 				sent++
 			}
 			if sent > 0 {
-				buf.Flush()
+				if buf.Flush() != nil {
+					return // client went away
+				}
 				fl.Flush()
 			}
 		}

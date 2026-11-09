@@ -14,7 +14,13 @@ build: ## build agent + hub binaries into bin/
 	CGO_ENABLED=0 go build -trimpath -ldflags="$(LDFLAGS)" -o bin/p10logs-hub   ./cmd/p10logs-hub
 
 test: ## unit tests
-	go test ./...
+	go test -race ./...
+
+golangci: ## golangci-lint with the CI config (.golangci.yml)
+	golangci-lint run ./...
+
+cover: ## unit tests with coverage report (coverage.out, opens in browser)
+	go test -race -covermode=atomic -coverprofile=coverage.out ./... && go tool cover -func=coverage.out | tail -1
 
 e2e: build ## local end-to-end (fake /var/log/pods, real agent + hub)
 	./hack/e2e-local.sh
@@ -78,7 +84,7 @@ images-tar: ## build linux/$(ARCH) images (ARCH=amd64|arm64, cross-compiled) and
 	@ls -la dist/p10logs-images-$(VER)-$(ARCH).tar
 
 bench: build ## local load benchmark at 2k and 10k lines/s (writes bench/RESULTS.md rows to stdout)
-	@echo "| lines/s | pods | dur | ingested | agent RSS | agent CPU | hub RSS | hub CPU | raw | on disk | ratio |"
-	@echo "|---|---|---|---|---|---|---|---|---|---|---|"
+	@echo "| lines/s | pods | dur | written | ingested | drain | agent RSS | agent CPU | hub RSS | hub CPU | raw | on disk | ratio |"
+	@echo "|---|---|---|---|---|---|---|---|---|---|---|---|---|"
 	@./bench/run.sh 2000 60 20
 	@./bench/run.sh 10000 60 50

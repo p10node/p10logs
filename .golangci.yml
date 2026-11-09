@@ -1,0 +1,36 @@
+version: "2"
+run:
+  timeout: 5m
+linters:
+  default: standard
+  enable:
+    - misspell
+    - unconvert
+    - unparam
+    - nolintlint
+  settings:
+    errcheck:
+      # documented to never return a non-nil error
+      exclude-functions:
+        - (*bytes.Buffer).Write
+        - (*bytes.Buffer).WriteString
+        - (*bytes.Buffer).WriteByte
+        - (*strings.Builder).Write
+        - (*strings.Builder).WriteString
+        - (*strings.Builder).WriteByte
+        - (net/http.ResponseWriter).Write
+        # bufio errors are sticky and surface on Flush, which the SSE/export paths check
+        - (*bufio.Writer).Write
+        - (*bufio.Writer).WriteString
+    misspell:
+      locale: US
+  exclusions:
+    generated: lax
+    presets:
+      - std-error-handling
+    rules:
+      - path: _test\.go
+        linters: [errcheck]
+formatters:
+  enable:
+    - gofmt

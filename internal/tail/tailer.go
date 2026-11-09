@@ -37,7 +37,7 @@ type Sink interface {
 // Inode returns the inode of an open file (0 on non-unix).
 func Inode(fi os.FileInfo) uint64 {
 	if st, ok := fi.Sys().(*syscall.Stat_t); ok {
-		return uint64(st.Ino)
+		return st.Ino
 	}
 	return 0
 }
@@ -63,6 +63,7 @@ type Tailer struct {
 	key     string
 	off     atomic.Int64
 	mergeAt int64
+	keyPub  atomic.Value // string copy of key for Key(); readable while Run is active
 }
 
 // Offset is the current read position (for lag reporting).
@@ -75,8 +76,14 @@ func NewTailer(path string, inode uint64, meta cri.Meta, start int64, sink Sink)
 		rotated: make(chan struct{}), done: make(chan struct{})}
 }
 
-// Key returns the file key ("" until the first line has been seen).
-func (t *Tailer) Key() string { return t.key }
+// Key returns the file key ("" until the first line has been seen). It is safe to call
+// while Run is active.
+func (t *Tailer) Key() string {
+	if v, ok := t.keyPub.Load().(string); ok {
+		return v
+	}
+	return ""
+}
 
 // fingerprintMax bounds how much of the file the identity hash covers. CRI records can be
 // 16 KiB (containerd) plus prefix before the first newline, so 4 KiB is not enough; a
@@ -110,7 +117,7 @@ func (t *Tailer) Rotated() {
 // Done is closed when Run returns.
 func (t *Tailer) Done() <-chan struct{} { return t.done }
 
-// Run reads until ctx is cancelled, the file disappears, or Rotated() and EOF.
+// Run reads until ctx is canceled, the file disappears, or Rotated() and EOF.
 func (t *Tailer) Run(ctx context.Context) {
 	defer close(t.done)
 	f, err := os.Open(t.Path)
@@ -141,6 +148,7 @@ func (t *Tailer) Run(ctx context.Context) {
 		}
 	}
 	t.key = FileKey(t.Path, Inode(fi), head)
+	t.keyPub.Store(t.key)
 	off := t.Start
 	if t.Positions != nil {
 		if p, ok := t.Positions.Get(t.key); ok {
@@ -202,7 +210,6 @@ func (t *Tailer) Run(ctx context.Context) {
 			if len(pending) > 0 {
 				off += int64(len(pending))
 				t.emit(&merger, pending, off)
-				pending = nil
 			}
 			if l, ok := merger.Flush(); ok {
 				t.Sink.Record(Record{Meta: t.Meta, Key: t.key, Time: l.Time, Stderr: l.Stderr, Msg: l.Msg, StartOff: t.mergeAt, EndOff: off})
@@ -216,7 +223,7 @@ func (t *Tailer) Run(ctx context.Context) {
 			if rotatedAt.IsZero() {
 				rotatedAt = time.Now()
 			}
-			t.rotated = nil // already signalled; keep polling until the grace period ends
+			t.rotated = nil // already signaled; keep polling until the grace period ends
 		case <-time.After(t.Poll):
 		}
 		idle++
@@ -233,7 +240,6 @@ func (t *Tailer) Run(ctx context.Context) {
 				if len(pending) > 0 {
 					off += int64(len(pending))
 					t.emit(&merger, pending, off)
-					pending = nil
 				}
 				if l, ok := merger.Flush(); ok {
 					t.Sink.Record(Record{Meta: t.Meta, Key: t.key, Time: l.Time, Stderr: l.Stderr, Msg: l.Msg, StartOff: t.mergeAt, EndOff: off})

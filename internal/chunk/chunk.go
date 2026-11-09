@@ -52,7 +52,7 @@ type FrameRef struct {
 	Count int   `json:"c"`
 }
 
-// Footer summarises a sealed chunk.
+// Footer summarizes a sealed chunk.
 type Footer struct {
 	Version int               `json:"v"`
 	Cluster string            `json:"cl,omitempty"`
@@ -85,7 +85,7 @@ var (
 	decPool = sync.Pool{New: func() any { d, _ := zstd.NewReader(nil, zstd.WithDecoderConcurrency(1)); return d }}
 )
 
-// EncodeRaw serialises entries (uncompressed): repeated { ts i64 | stream u8 | len u32 | msg }.
+// EncodeRaw serializes entries (uncompressed): repeated { ts i64 | stream u8 | len u32 | msg }.
 func EncodeRaw(entries []Entry) []byte {
 	n := 0
 	for _, e := range entries {
@@ -125,7 +125,7 @@ func DecodeRaw(raw []byte, fn func(Entry) bool) error {
 	return nil
 }
 
-// EncodePayload serialises entries and compresses them.
+// EncodePayload serializes entries and compresses them.
 func EncodePayload(entries []Entry) (compressed []byte, raw int) {
 	buf := EncodeRaw(entries)
 	enc := encPool.Get().(*zstd.Encoder)
@@ -190,8 +190,10 @@ func (w *Writer) recover() error {
 		if err != nil {
 			break
 		}
+		if err := DecodePayload(payload, func(e Entry) bool { w.Bloom.Add(e.Msg); return true }); err != nil {
+			break // frame header is intact but the payload is not: truncate here
+		}
 		w.addRef(ref, meta)
-		DecodePayload(payload, func(e Entry) bool { w.Bloom.Add(e.Msg); return true })
 		off += ref.Len
 	}
 	if off != st.Size() {
