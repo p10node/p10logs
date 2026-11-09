@@ -6,7 +6,7 @@ RUN go mod download
 COPY . .
 RUN CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH go build -trimpath -ldflags="-s -w -X main.Version=$VERSION" -o /out/p10logs-hub ./cmd/p10logs-hub
 
-FROM gcr.io/distroless/static-debian12:nonroot
+FROM gcr.io/distroless/static-debian13:nonroot
 LABEL org.opencontainers.image.source="https://github.com/p10node/p10logs" \
       org.opencontainers.image.licenses="Apache-2.0" \
       org.opencontainers.image.vendor="p10node"

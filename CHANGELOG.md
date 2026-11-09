@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.1.6 — 2026-11-09
+
+- Security: images move to `gcr.io/distroless/static-debian13:nonroot` (the Debian 12 base
+  shipped ca-certificates DLA-4845-1 and tzdata DLA-4792-1, DLA-4854-1, DLA-4867-1) and
+  are built with Go 1.26.10 (CVE-2026-111943, crypto/x509 distrust of compromised
+  intermediates). go-jose 4.1.9 fixes CVE-2026-116585, CVE-2026-116586 and
+  CVE-2026-116587 (hub, OIDC ID-token verification). klauspost/compress 1.20.3 fixes
+  CVE-2026-116591, a zstd decoder panic on a crafted frame reachable through the hub's
+  ingest endpoint. Clears the 13 findings Artifact Hub reported for 1.1.5.
+
 ## 1.1.5 — 2026-10-19
 
 - UI: namespaces can be pinned with the star next to their name; the star button in the
