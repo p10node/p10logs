@@ -1001,7 +1001,9 @@ func (s *Store) DiskCap() int64 {
 	if err := syscall.Statfs(s.cfg.Dir, &st); err != nil {
 		return 0
 	}
-	return int64(st.Blocks) * int64(st.Bsize) * 9 / 10
+	// Bsize is int64 on linux and uint32 on darwin; uint64 arithmetic needs a
+	// conversion on every platform, so unconvert stays quiet everywhere.
+	return int64(st.Blocks * uint64(st.Bsize) * 9 / 10)
 }
 
 // DiskUsed sums sealed chunk bytes plus open chunk sizes plus the WAL.
