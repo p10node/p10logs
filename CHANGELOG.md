@@ -1,7 +1,11 @@
 # Changelog
 
-## Unreleased
+## 1.1.7 — 2026-11-13
 
+- UI: fold state is kept in the browser. Clusters, namespaces and workloads the user
+  folded or unfolded (one by one or with expand/collapse all) open the same way next
+  time; a workload with more than 5 pods still starts folded the first time, but once
+  unfolded it stays unfolded. The selected-streams bar keeps its ▸/▾ choice too.
 - Fixed: data race on the agent's counters (`Shipper.Sent/Failed`, `Batcher.Dropped`),
   written by the shipper and batcher goroutines and read by `/status` and the heartbeat
   without synchronization; they are atomics now. `Tailer.Key()` is safe to call while the

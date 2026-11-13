@@ -282,6 +282,8 @@ const S={sel:new Set(),range:'1h',follow:true,wrap:false,json:true,ts:'local',q:
 const PREF={get(k,d){try{const v=localStorage.getItem('p10logs.'+k);return v===null?d:JSON.parse(v)}catch(e){return d}},
   set(k,v){try{localStorage.setItem('p10logs.'+k,JSON.stringify(v))}catch(e){}}};
 const CRUMB_FOLD_AT=8; // selected streams above this collapse the chip list to one line
+const FOLD_MAX=2000; // remembered tree fold keys; oldest dropped first
+function saveFold(){const cap=s=>[...s].slice(-FOLD_MAX);PREF.set('collapsed',cap(S.collapsed));PREF.set('autoCollapsed',cap(S.autoCollapsed))}
 let lastStart=-1,lastEnd=-1;
 
 // ---------- API ----------
@@ -343,7 +345,7 @@ function setPinnedOnly(on){S.pinnedOnly=on;PREF.set('pinnedOnly',on);$('pinonly'
 function buildTree(){
   const t=$('tree');const now=Date.now()*1e6;const frag=document.createDocumentFragment();
   const tw=open=>`<span class="tw">${open?'▾':'▸'}</span>`;
-  const toggle=key=>{S.collapsed.has(key)?S.collapsed.delete(key):S.collapsed.add(key);buildTree()};
+  const toggle=key=>{S.collapsed.has(key)?S.collapsed.delete(key):S.collapsed.add(key);saveFold();buildTree()};let autoNew=false;
   for(const c of S.tree){
     const ckey=c.name;let cpods=0;const kids=document.createElement('div');kids.className='kids';
     for(const n of c.namespaces.slice().sort((a,b)=>S.pins.has(b.name)-S.pins.has(a.name))){
@@ -361,7 +363,7 @@ function buildTree(){
         const pods=g.pods.slice().sort((a,b)=>(b.live-a.live)||a.name.localeCompare(b.name));
         const ids=pods.flatMap(p=>p.containers.map(x=>x.id)),selN=ids.filter(id=>S.sel.has(id)).length;
         const live=pods.filter(p=>p.live).length,rs=pods.reduce((a,p)=>a+(p.restarts||0),0);
-        if(pods.length>5&&!S.autoCollapsed.has(wk)){S.autoCollapsed.add(wk);S.collapsed.add(wk)} // many pods (cron runs…): start folded
+        if(pods.length>5&&!S.autoCollapsed.has(wk)){S.autoCollapsed.add(wk);S.collapsed.add(wk);autoNew=true} // many pods (cron runs…): start folded
         const wwrap=document.createElement('div');if(S.collapsed.has(wk))wwrap.className='collapsed';
         const wn=document.createElement('div');wn.className='node wl'+(selN?' part':'')+(live?'':' gone');
         wn.innerHTML=`${tw(!S.collapsed.has(wk))}<span class="st"></span><span class="nm" title="${esc(g.wl.kind)} ${esc(g.wl.name)} · ${pods.length} pod${pods.length>1?'s':''}${live<pods.length?` (${pods.length-live} gone)`:''}${g.wl.sure?'':'\n(kind guessed from the pod name; enable agent.enrich for the real owner)'}">${esc(g.wl.name)}</span><span class="kd">${KD[g.wl.kind]||esc(g.wl.kind.toLowerCase())}</span>${rs?`<span class="rs" title="restarts">↻${rs}</span>`:''}<span class="cnt" title="${selN?selN+' of '+ids.length+' containers selected':'click: tail every container of this workload'}">${selN?selN+'/':''}${pods.length}</span>`;
@@ -395,6 +397,7 @@ function buildTree(){
     cn.onclick=()=>toggle(ckey);
     cwrap.appendChild(cn);cwrap.appendChild(kids);frag.appendChild(cwrap);
   }
+  if(autoNew)saveFold();
   if(S.pinnedOnly&&!S.tree.some(c=>c.namespaces.some(n=>S.pins.has(n.name)))){
     const h=document.createElement('div');h.className='treehint';
     h.textContent=S.pins.size?'None of the pinned namespaces has streams right now.':'No pinned namespaces yet. Turn off ★ above, then pin namespaces with ☆ next to their name.';
@@ -504,7 +507,7 @@ function crumb(){
   b.title=`${n} selected stream${n>1?'s':''} · ${live} live · ${n-live} gone\n${fold?'click: show all':'click: collapse to one line'}`;
   $('crumbs').innerHTML=[...S.sel].map(id=>{const s=S.streams[id];if(!s)return '';return `<span><i class="pc" style="background:${s.color}"></i>${esc(s.key)}${s.live?'':' <span style="color:var(--fg-faint)">(gone)</span>'}</span>`}).join('');
 }
-$('crumbfold').addEventListener('click',()=>{S.crumbFold=!(S.crumbFold??S.sel.size>CRUMB_FOLD_AT);crumb()});
+$('crumbfold').addEventListener('click',()=>{S.crumbFold=!(S.crumbFold??S.sel.size>CRUMB_FOLD_AT);PREF.set('crumbFold',S.crumbFold);crumb()});
 function atBottom(){const v=$('view');return v.scrollHeight-v.scrollTop-v.clientHeight<ROWH*2}
 function bottomBtn(){$('tobottom').hidden=!S.sel.size||!S.view.length||atBottom()}
 function scrollBottom(){const v=$('view');v.scrollTop=v.scrollHeight;S.pending=0;$('newpill').hidden=true;bottomBtn()}
@@ -610,8 +613,8 @@ let qT=0;$('q').addEventListener('input',e=>{S.q=e.target.value;clearTimeout(qT)
 $('find').addEventListener('input',e=>{S.find=e.target.value.trim().toLowerCase();buildTree()});
 $('refresh').addEventListener('click',loadStreams);
 $('clearsel').addEventListener('click',()=>{S.sel.clear();reload();buildTree()});
-$('expand').addEventListener('click',()=>{S.collapsed.clear();buildTree()});
-$('collapse').addEventListener('click',()=>{allKeys().forEach(k=>S.collapsed.add(k));buildTree()});
+$('expand').addEventListener('click',()=>{S.collapsed.clear();saveFold();buildTree()});
+$('collapse').addEventListener('click',()=>{allKeys().forEach(k=>S.collapsed.add(k));saveFold();buildTree()});
 $('liveonly').addEventListener('click',e=>{S.liveOnly=!S.liveOnly;e.currentTarget.setAttribute('aria-pressed',S.liveOnly);buildTree()});
 $('nsfilter').addEventListener('change',e=>{S.ns=e.target.value;buildTree()});
 $('pinonly').addEventListener('click',()=>setPinnedOnly(!S.pinnedOnly));
@@ -641,6 +644,9 @@ $('tab-logs').addEventListener('click',()=>showTab('logs'));$('tab-agents').addE
   const u=new URLSearchParams(location.search);
   S.pins=new Set((PREF.get('pins',[])||[]).filter(x=>typeof x==='string'));
   setFont(PREF.get('fontSize',13));setTheme(PREF.get('theme','system'));
+  const strs=v=>Array.isArray(v)?v.filter(x=>typeof x==='string'):[];
+  S.collapsed=new Set(strs(PREF.get('collapsed',[])));S.autoCollapsed=new Set(strs(PREF.get('autoCollapsed',[])));
+  const cf=PREF.get('crumbFold',null);S.crumbFold=typeof cf==='boolean'?cf:null;
   S.pinnedOnly=PREF.get('pinnedOnly',false)===true;$('pinonly').setAttribute('aria-pressed',S.pinnedOnly);
   for(const id of u.getAll('sid'))S.sel.add(String(id));
   if(u.get('q')){S.q=u.get('q');$('q').value=S.q}
